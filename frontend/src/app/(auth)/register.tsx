@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { register } from '../../api/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTranslation } from '../../i18n';
+import { getErrorMessage } from '../../utils/errors';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function RegisterScreen() {
         setError(response.message || 'Registration failed');
       }
     } catch (err: any) {
-      const errMsg = err.response?.data?.message || err.response?.data?.detail || 'Registration failed. Email might already be taken.';
+      const errMsg = getErrorMessage(err, 'Registration failed. Email might already be taken.');
       setError(errMsg);
     } finally {
       setLoading(false);

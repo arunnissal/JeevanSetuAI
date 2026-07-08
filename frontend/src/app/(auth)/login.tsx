@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { login } from '../../api/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTranslation } from '../../i18n';
+import { getErrorMessage } from '../../utils/errors';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function LoginScreen() {
         setError(response.message || 'Login failed');
       }
     } catch (err: any) {
-      const errMsg = err.response?.data?.message || err.response?.data?.detail || 'Something went wrong. Please check your credentials.';
+      const errMsg = getErrorMessage(err, 'Something went wrong. Please check your credentials.');
       setError(errMsg);
     } finally {
       setLoading(false);
