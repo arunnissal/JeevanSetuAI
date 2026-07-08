@@ -389,6 +389,17 @@ export default function RecordDetailScreen() {
           <Text className="text-slate-600 text-sm leading-relaxed mb-4">
             {record.analysis?.ai_summary || 'No simplified summary available.'}
           </Text>
+
+          <TouchableOpacity
+            onPress={() => router.push({
+              pathname: '/(screens)/health-assistant',
+              params: { record_id: record.id }
+            })}
+            className="bg-teal-50 border border-teal-200 py-3.5 rounded-xl items-center mb-4 flex-row justify-center space-x-2 active:bg-teal-100"
+          >
+            <Text className="text-teal-800 font-bold text-sm">💬 Ask About This Report</Text>
+          </TouchableOpacity>
+
           <View className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
             <Text className="text-slate-400 text-[10px] text-center font-semibold">
               This explanation is AI-generated to help you understand your report.

@@ -292,3 +292,116 @@ class IntelligenceInsightsView(APIView):
 
         return success_response(data=data, message="AI health insights retrieved successfully")
 
+class HealthAssistantChatView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from apps.intelligence.models import ChatMessage
+        messages = ChatMessage.objects.filter(user=request.user).order_by('created_at')[:50]
+        data = [
+            {
+                "id": str(msg.id),
+                "role": msg.role,
+                "content": msg.content,
+                "record_id": str(msg.record_id) if msg.record_id else None,
+                "created_at": msg.created_at.isoformat()
+            }
+            for msg in messages
+        ]
+        return success_response(data=data, message="Chat history retrieved successfully")
+
+    def post(self, request):
+        user = request.user
+        message = request.data.get('message')
+        record_id = request.data.get('record_id')
+
+        if not message:
+            return error_response(message="Message content is required.", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Retrieve medical records and analyses
+        completed_records = MedicalRecord.objects.filter(user=user, processing_status='completed').order_by('-created_at')
+        
+        from apps.intelligence.models import DocumentAnalysis, ChatMessage
+        analyses = DocumentAnalysis.objects.filter(record__user=user).order_by('-record__created_at')
+
+        # 2. Build prioritized report context
+        prioritized_context = ""
+        if record_id:
+            try:
+                p_record = MedicalRecord.objects.get(id=record_id, user=user, processing_status='completed')
+                p_analysis = DocumentAnalysis.objects.get(record=p_record)
+                prioritized_context = (
+                    f"\n[USER IS SPECIFICALLY ASKING ABOUT THIS REPORT]:\n"
+                    f"Report Type: {p_record.get_record_type_display()}\n"
+                    f"Original Filename: {p_record.metadata.get('original_filename', 'medical_report.pdf')}\n"
+                    f"Findings: {', '.join(p_analysis.diagnoses) if isinstance(p_analysis.diagnoses, list) else p_analysis.diagnoses}\n"
+                    f"Summary: {p_analysis.ai_summary}\n"
+                )
+            except (MedicalRecord.DoesNotExist, DocumentAnalysis.DoesNotExist):
+                pass
+
+        # 3. Build general summaries context
+        summaries_list = []
+        for analysis in analyses[:3]:  # Top 3 latest completed reports
+            findings = ', '.join(analysis.diagnoses) if isinstance(analysis.diagnoses, list) else analysis.diagnoses
+            summaries_list.append(
+                f"- Type: {analysis.record.get_record_type_display()}, File: {analysis.record.metadata.get('original_filename')}\n"
+                f"  Findings: {findings}\n"
+                f"  Summary: {analysis.ai_summary}"
+            )
+        summaries_context = "\n".join(summaries_list)
+
+        # 4. Fetch recent timeline summaries
+        from apps.timeline.models import TimelineEvent
+        timeline_events = TimelineEvent.objects.filter(user=user).order_by('-created_at')[:5]
+        timeline_list = [f"- {t.title} at {t.created_at.strftime('%Y-%m-%d %H:%M')}" for t in timeline_events]
+        timeline_context = "\n".join(timeline_list)
+
+        # 5. Retrieve previous database chat history
+        db_history = ChatMessage.objects.filter(user=user).order_by('-created_at')[:8]
+        db_history = reversed(db_history)
+
+        # 6. Compose system instruction prompt
+        system_prompt = (
+            "You are JeevanSetu AI's Personal AI Health Assistant. "
+            "Your objective is to help the user understand their own medical reports and health journey in simple, layman, friendly language.\n\n"
+            "Here is the user's medical background context:\n"
+            f"[RECENT SUMMARIES]:\n{summaries_context}\n\n"
+            f"[TIMELINE EVENTS]:\n{timeline_context}\n"
+            f"{prioritized_context}\n"
+            "AI Safety Guidelines:\n"
+            "1. Answer using the provided medical reports, timeline, and insights. If the answer is unavailable in the records, say so honestly. Do not make up or hallucinate details.\n"
+            "2. You must NEVER diagnose, NEVER prescribe medicine, and NEVER recommend changing or stopping active dosages.\n"
+            "3. If the user requests diagnostic claims, medications, self-harm, or emergency treatment advice, politely decline and instruct them to consult a qualified physician or emergency services immediately.\n"
+            "4. Keep explanations short, simple, reassuring, and educational. Avoid medical textbook terminology."
+        )
+
+        # 7. Formulate completion messages payload
+        messages = [
+            {"role": "system", "content": system_prompt}
+        ]
+        for msg in db_history:
+            messages.append({"role": msg.role, "content": msg.content})
+
+        # 8. Save user query message to database
+        ChatMessage.objects.create(user=user, role='user', content=message, record_id=record_id)
+
+        # 9. Call Sarvam AI provider
+        try:
+            from apps.intelligence.providers.sarvam_provider import SarvamProvider
+            provider = SarvamProvider()
+            response_content = provider.chat(messages, message)
+        except Exception as e:
+            # Fallback reassurance if provider is unavailable
+            response_content = "I'm having trouble connecting to my knowledge base right now. Please try asking again in a few moments."
+
+        # 10. Save assistant response to database
+        ChatMessage.objects.create(user=user, role='assistant', content=response_content, record_id=record_id)
+
+        return success_response(data={"response": response_content}, message="Response generated successfully")
+
+    def delete(self, request):
+        from apps.intelligence.models import ChatMessage
+        ChatMessage.objects.filter(user=request.user).delete()
+        return success_response(message="Conversation history cleared successfully")
+
