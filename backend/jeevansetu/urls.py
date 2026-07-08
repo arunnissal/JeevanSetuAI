@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/v1/', include('apps.vault.urls')),
     path('api/v1/', include('apps.dashboard.urls')),
     path('api/v1/', include('apps.timeline.urls')),
+    path('api/v1/', include('apps.intelligence.urls')),
 ]

@@ -146,7 +146,7 @@ export default function UploadScreen() {
       if (response.success && response.data) {
         setUploadProgress(100);
         setTimeout(() => {
-          router.replace('/(vault)/processing');
+          router.replace({ pathname: '/(vault)/processing', params: { id: response.data.id } });
         }, 500);
       } else {
         Alert.alert('Upload Failed', response.message || 'Could not upload record');
