@@ -25,10 +25,16 @@ class AIRequestLog(models.Model):
     prompt = models.TextField()
     raw_response = models.TextField(blank=True)
     status_code = models.IntegerField(null=True, blank=True)
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    processing_time = models.FloatField(null=True, blank=True)
+    provider = models.CharField(max_length=100, default='mock')
+    status = models.CharField(max_length=50, default='failed')
+    error = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"AI Log {self.id} (Status: {self.status_code})"
+        return f"AI Log {self.id} ({self.provider} - {self.status})"
 
 class OCRLog(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
