@@ -2,9 +2,11 @@ from rest_framework import status, permissions, generics
 from rest_framework.views import APIView
 from django.db import transaction
 import cloudinary.uploader
+import threading
 from apps.vault.models import MedicalFile, MedicalRecord
 from apps.vault.serializers import MedicalRecordSerializer
 from apps.common.responses import success_response, error_response
+from apps.intelligence.services.pipeline import IntelligencePipeline
 
 class RecordListView(generics.ListAPIView):
     serializer_class = MedicalRecordSerializer
@@ -81,10 +83,17 @@ class UploadRecordView(APIView):
                     }
                 )
 
+
+            # Trigger intelligence pipeline async
+            threading.Thread(
+                target=IntelligencePipeline.run,
+                args=(str(medical_record.id),)
+            ).start()
+
             serializer = MedicalRecordSerializer(medical_record)
             return success_response(
                 data=serializer.data, 
-                message="File uploaded successfully. Ready for processing.",
+                message="File uploaded successfully. Processing started in background.",
                 status_code=status.HTTP_201_CREATED
             )
 
