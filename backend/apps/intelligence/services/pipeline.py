@@ -7,6 +7,7 @@ from apps.intelligence.services.document_classifier import DocumentClassifier
 from apps.intelligence.services.prompt_factory import PromptFactory
 from apps.intelligence.services.ai_gateway import AIGateway
 from apps.intelligence.providers.sarvam_provider import SarvamProvider
+from apps.intelligence.services.ocr import OCRService
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,14 @@ class IntelligencePipeline:
         ProcessingLog.objects.create(record=record, stage="Pipeline Start", status="Success")
 
         try:
-            # 1. OCR Stage
-            ocr_text = cls.perform_ocr(record)
+            # 1. OCR Stage (Real text extraction)
+            ocr_text, ocr_conf, ocr_time = OCRService.extract_text(record)
+            ProcessingLog.objects.create(
+                record=record, 
+                stage="OCR", 
+                status="Success", 
+                error_message=f"Text extracted length: {len(ocr_text)}, conf: {ocr_conf}, time: {ocr_time:.2f}s"
+            )
             
             # 2. Classification Stage
             document_subtype = DocumentClassifier.classify(ocr_text, record.record_type)
@@ -95,31 +102,3 @@ class IntelligencePipeline:
                 error_message=str(e)
             )
             return False
-
-    @classmethod
-    def perform_ocr(cls, record: MedicalRecord) -> str:
-        # Mock OCR layout texts depending on user selected report type
-        rt = record.record_type
-        if rt == 'blood_test':
-            text = "Complete Blood Count (CBC) Report.\nHemoglobin: 14.5 g/dL (Reference: 13.5-17.5)\nWBC Count: 6.5 x10^3 /mcL (Reference: 4.5-11.0)\nPlatelet Count: 250,000 /mcL (Reference: 150,000-450,000)\nRed Blood Cell: 4.8 million/mcL."
-        elif rt == 'radiology':
-            text = "MRI BRAIN CLINICAL STUDY.\nProcedure: Magnetic Resonance Imaging of the brain without contrast.\nFindings: No acute intracranial hemorrhage, mass effect, or midline shift.\nImpression: Normal study of the brain."
-        elif rt == 'prescription':
-            text = "Rx\nTab Paracetamol 650mg - OD for 3 days.\nCap Amoxicillin 500mg - TID for 5 days."
-        elif rt == 'discharge_summary':
-            text = "DISCHARGE SUMMARY.\nPatient Name: John Doe.\nDiagnosis: Acute Appendicitis.\nHospital Course: Laparoscopic appendectomy was performed on 2026-07-02.\nFollow-up: Visit OPD in 2 weeks for suture removal."
-        elif rt == 'doctor_consultation':
-            text = "DOCTOR CONSULTATION NOTE.\nChief Complaint: Mild cough and fever for 2 days.\nClinical Findings: Chest clear, temp 99.1 F.\nPlan: Hydration, paracetamol as needed, rest."
-        elif rt == 'vaccination':
-            text = "VACCINATION RECORD.\nVaccine Name: Influenza Vaccine.\nDose: 0.5 mL IM.\nDate Administered: 2026-07-05."
-        elif rt == 'medical_certificate':
-            text = "MEDICAL CERTIFICATE.\nThis is to certify that the patient is unfit for duty due to illness.\nMedical Leave recommended from 2026-07-05 to 2026-07-07.\nFitness will be evaluated upon return."
-        else:
-            text = "Generic medical document text with normal physiological metrics."
-
-        OCRLog.objects.create(
-            file=record.file,
-            extracted_text_length=len(text),
-            status="Success"
-        )
-        return text

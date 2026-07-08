@@ -1,0 +1,33 @@
+# Workspace Git Ignore
+
+# Local Tesseract binaries
+tesseract/
+tesseract_mock_db.txt
+
+# Python caches
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django Local SQLite Database
+backend/db.sqlite3
+
+# Node dependencies
+node_modules/
+
+# Local envs
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

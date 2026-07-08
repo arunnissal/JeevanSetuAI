@@ -29,3 +29,20 @@ class AITimeout(AIBaseException):
     """Raised when the AI provider request times out."""
     def __init__(self, message="AI provider request timed out", details=None):
         super().__init__(message, details)
+
+class OCRBaseException(Exception):
+    """Base exception for all OCR errors."""
+    def __init__(self, message="OCR operation failed", details=None):
+        super().__init__(message)
+        self.message = message
+        self.details = details or {}
+
+class OCRFailedException(OCRBaseException):
+    """Raised when OCR execution itself crashes or fails."""
+    def __init__(self, message="OCR processing failed", details=None):
+        super().__init__(message, details)
+
+class OCRValidationException(OCRBaseException):
+    """Raised when extracted text does not pass quality or length thresholds."""
+    def __init__(self, message="Blank or unreadable document rejected", details=None):
+        super().__init__(message, details)

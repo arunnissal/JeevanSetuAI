@@ -40,6 +40,9 @@ class OCRLog(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     file = models.ForeignKey(MedicalFile, on_delete=models.CASCADE)
     extracted_text_length = models.IntegerField()
+    raw_text = models.TextField(blank=True, null=True)
+    confidence = models.FloatField(blank=True, null=True)
+    execution_time = models.FloatField(blank=True, null=True)  # in seconds
     status = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
 
