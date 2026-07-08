@@ -48,6 +48,11 @@ class UploadRecordView(APIView):
         if not any(file_name.endswith(ext) for ext in allowed_extensions):
             return error_response(message="Unsupported file type. Only PNG, JPG, JPEG, and PDF are allowed.")
 
+        record_type = request.data.get('record_type', 'other')
+        valid_types = [choice[0] for choice in MedicalRecord.RECORD_TYPE_CHOICES]
+        if record_type not in valid_types:
+            return error_response(message=f"Invalid record type. Must be one of: {', '.join(valid_types)}.")
+
         try:
             with transaction.atomic():
                 # 1. Upload file to Cloudinary
@@ -68,6 +73,7 @@ class UploadRecordView(APIView):
                 medical_record = MedicalRecord.objects.create(
                     user=request.user,
                     file=medical_file,
+                    record_type=record_type,
                     processing_status='pending', # Prepared for Phase 4 processing
                     metadata={
                         "original_filename": file_obj.name,

@@ -22,5 +22,5 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MedicalRecord
-        fields = ['id', 'file', 'metadata', 'processing_status', 'created_at', 'analysis']
+        fields = ['id', 'file', 'metadata', 'record_type', 'processing_status', 'created_at', 'analysis']
         read_only_fields = ['id', 'processing_status', 'created_at']

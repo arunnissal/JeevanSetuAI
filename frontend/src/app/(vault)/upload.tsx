@@ -12,8 +12,21 @@ interface SelectedFile {
   type: string;
 }
 
+const REPORT_TYPES = [
+  { id: 'blood_test', label: 'Blood Test' },
+  { id: 'lab_report', label: 'Lab Report' },
+  { id: 'prescription', label: 'Prescription' },
+  { id: 'discharge_summary', label: 'Discharge Summary' },
+  { id: 'doctor_consultation', label: 'Doctor Consultation Note' },
+  { id: 'vaccination', label: 'Vaccination Record' },
+  { id: 'medical_certificate', label: 'Medical Certificate' },
+  { id: 'radiology', label: 'Radiology Report' },
+  { id: 'other', label: 'Other' },
+];
+
 export default function UploadScreen() {
   const router = useRouter();
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -109,15 +122,14 @@ export default function UploadScreen() {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !selectedType) return;
 
     setUploading(true);
-    setUploadProgress(10); // Start progress bar simulation
+    setUploadProgress(10);
 
     try {
       const formData = new FormData();
       
-      // Handle file attachment based on platform
       const filePayload = {
         uri: selectedFile.uri,
         name: selectedFile.name,
@@ -125,6 +137,7 @@ export default function UploadScreen() {
       } as any;
 
       formData.append('file', filePayload);
+      formData.append('record_type', selectedType);
 
       setUploadProgress(40);
       const response = await uploadReport(formData);
@@ -132,7 +145,6 @@ export default function UploadScreen() {
 
       if (response.success && response.data) {
         setUploadProgress(100);
-        // Short timeout to show 100% completion before redirection
         setTimeout(() => {
           router.replace('/(vault)/processing');
         }, 500);
@@ -152,51 +164,78 @@ export default function UploadScreen() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50 justify-between px-6 py-6">
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        <View className="flex-row items-center justify-between mb-8">
+        <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity onPress={() => router.back()} className="py-2">
             <Text className="text-teal-700 text-lg font-semibold">Cancel</Text>
           </TouchableOpacity>
           <Text className="text-xl font-bold text-slate-900">Upload Report</Text>
-          <View className="w-12" /> {/* Spacer */}
+          <View className="w-12" />
         </View>
 
-        <Text className="text-slate-500 mb-8 text-center px-4">
-          Select or snap a photo of your medical report (PDF or Image) to begin processing.
-        </Text>
-
-        <View className="space-y-4">
-          <TouchableOpacity
-            onPress={handleTakePhoto}
-            className="w-full bg-white border border-slate-200 py-6 rounded-2xl flex-row items-center justify-center space-x-3 active:bg-slate-100"
-          >
-            <Text className="text-slate-800 text-lg font-bold">📷 Take Photo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handlePickLibrary}
-            className="w-full bg-white border border-slate-200 py-6 rounded-2xl flex-row items-center justify-center space-x-3 mt-4 active:bg-slate-100"
-          >
-            <Text className="text-slate-800 text-lg font-bold">🖼️ Choose from Gallery</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handlePickDocument}
-            className="w-full bg-white border border-slate-200 py-6 rounded-2xl flex-row items-center justify-center space-x-3 mt-4 active:bg-slate-100"
-          >
-            <Text className="text-slate-800 text-lg font-bold">📄 Select PDF Document</Text>
-          </TouchableOpacity>
+        {/* Step 1: Select Report Type */}
+        <Text className="text-slate-800 font-bold text-base mb-3">1. Select Report Type</Text>
+        <View className="flex-row flex-wrap mb-6">
+          {REPORT_TYPES.map((type) => (
+            <TouchableOpacity
+              key={type.id}
+              onPress={() => setSelectedType(type.id)}
+              className={`mr-2 mb-2 px-4 py-2.5 rounded-full border ${
+                selectedType === type.id
+                  ? 'bg-teal-700 border-teal-700 text-white'
+                  : 'bg-white border-slate-200 text-slate-700'
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${
+                  selectedType === type.id ? 'text-white' : 'text-slate-700'
+                }`}
+              >
+                {type.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {selectedFile && (
+        {/* Step 2: Choose File */}
+        {selectedType && (
+          <View>
+            <Text className="text-slate-800 font-bold text-base mb-3">2. Choose Document Source</Text>
+            <View className="space-y-4">
+              <TouchableOpacity
+                onPress={handleTakePhoto}
+                className="w-full bg-white border border-slate-200 py-5 rounded-2xl flex-row items-center justify-center space-x-3 active:bg-slate-100"
+              >
+                <Text className="text-slate-800 text-base font-bold">📷 Take Photo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handlePickLibrary}
+                className="w-full bg-white border border-slate-200 py-5 rounded-2xl flex-row items-center justify-center space-x-3 mt-4 active:bg-slate-100"
+              >
+                <Text className="text-slate-800 text-base font-bold">🖼️ Choose from Gallery</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handlePickDocument}
+                className="w-full bg-white border border-slate-200 py-5 rounded-2xl flex-row items-center justify-center space-x-3 mt-4 active:bg-slate-100"
+              >
+                <Text className="text-slate-800 text-base font-bold">📄 Select PDF Document</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {selectedFile && selectedType && (
           <View className="bg-white border border-slate-200 p-5 rounded-2xl mt-8 shadow-sm">
             <Text className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
-              Selected File
+              Ready to Upload
             </Text>
             <Text className="text-slate-800 font-bold text-base mb-1" numberOfLines={1}>
               {selectedFile.name}
             </Text>
             <Text className="text-slate-400 text-xs uppercase">
-              {selectedFile.type.split('/')[1]} File
+              {selectedFile.type.split('/')[1]} File (Type:{' '}
+              {REPORT_TYPES.find((t) => t.id === selectedType)?.label})
             </Text>
 
             {uploading ? (
