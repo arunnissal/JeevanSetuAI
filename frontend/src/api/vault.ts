@@ -13,3 +13,8 @@ export const uploadReport = async (formData: FormData) => {
   });
   return response.data;
 };
+
+export const getRecordDetail = async (id: string) => {
+  const response = await apiClient.get(`/vault/records/${id}`);
+  return response.data;
+};

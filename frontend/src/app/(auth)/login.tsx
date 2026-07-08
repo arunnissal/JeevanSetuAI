@@ -4,10 +4,12 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { login } from '../../api/auth';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTranslation } from '../../i18n';
 
 export default function LoginScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,8 +30,7 @@ export default function LoginScreen() {
       if (response.success && response.data) {
         const { tokens, user } = response.data;
         setAuth(tokens.access, tokens.refresh, user);
-        Alert.alert('Success', 'Logged in successfully!');
-        // Redirect will be handled by the root layout auth state listener
+        Alert.alert(t.common.success, 'Logged in successfully!');
       } else {
         setError(response.message || 'Login failed');
       }
@@ -44,8 +45,8 @@ export default function LoginScreen() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50 justify-between px-6 py-12">
       <View className="flex-1 justify-center">
-        <Text className="text-3xl font-extrabold text-slate-900 mb-2">Welcome Back</Text>
-        <Text className="text-slate-500 mb-8">Sign in to access your digital health vault</Text>
+        <Text className="text-3xl font-extrabold text-slate-900 mb-2">{t.login.title}</Text>
+        <Text className="text-slate-500 mb-8">{t.login.subtitle}</Text>
 
         {error && (
           <View className="bg-red-50 border border-red-200 p-4 rounded-xl mb-6">
@@ -55,10 +56,10 @@ export default function LoginScreen() {
 
         <View className="space-y-4">
           <View>
-            <Text className="text-slate-600 font-medium mb-2">Email Address</Text>
+            <Text className="text-slate-600 font-medium mb-2">{t.login.emailLabel}</Text>
             <TextInput
               className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
-              placeholder="e.g., alex@example.com"
+              placeholder={t.login.emailPlaceholder}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -67,10 +68,10 @@ export default function LoginScreen() {
           </View>
 
           <View className="mt-4">
-            <Text className="text-slate-600 font-medium mb-2">Password</Text>
+            <Text className="text-slate-600 font-medium mb-2">{t.login.passwordLabel}</Text>
             <TextInput
               className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
-              placeholder="••••••••"
+              placeholder={t.login.passwordPlaceholder}
               secureTextEntry
               autoCapitalize="none"
               value={password}
@@ -87,7 +88,7 @@ export default function LoginScreen() {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white text-lg font-semibold">Sign In</Text>
+            <Text className="text-white text-lg font-semibold">{t.login.signInButton}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -95,7 +96,7 @@ export default function LoginScreen() {
       <View className="items-center">
         <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
           <Text className="text-teal-700 font-medium text-base">
-            Don't have an account? Sign Up
+            {t.login.noAccount}
           </Text>
         </TouchableOpacity>
       </View>

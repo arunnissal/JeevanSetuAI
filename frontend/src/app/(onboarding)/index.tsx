@@ -4,10 +4,12 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { updateProfile } from '../../api/auth';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTranslation } from '../../i18n';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { user, updateUser } = useAuthStore();
+  const { user, language, updateUser } = useAuthStore();
+  const { t } = useTranslation();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -37,7 +39,6 @@ export default function OnboardingScreen() {
       setError(null);
       setStep(2);
     } else if (step === 2) {
-      // Step 2 is fully optional but encouraged
       setError(null);
       setStep(3);
     }
@@ -63,6 +64,7 @@ export default function OnboardingScreen() {
       const payload = {
         full_name: fullName,
         dob: dob || null,
+        language: language, // Send currently selected language to update profile_progress category
         health_profile: {
           blood_group: bloodGroup || null,
           allergies: allergies || null,
@@ -77,7 +79,7 @@ export default function OnboardingScreen() {
       const response = await updateProfile(payload);
       if (response.success && response.data) {
         updateUser(response.data);
-        Alert.alert('Onboarding Complete', 'Welcome to JeevanSetu AI!');
+        Alert.alert(t.onboarding.successTitle, t.onboarding.successMessage);
       } else {
         setError(response.message || 'Failed to save onboarding details');
       }
@@ -95,7 +97,7 @@ export default function OnboardingScreen() {
         {/* Progress header */}
         <View className="mb-8">
           <Text className="text-xs font-semibold uppercase tracking-wider text-teal-700">
-            Step {step} of 3
+            {t.onboarding.stepLabel.replace('{step}', step.toString())}
           </Text>
           <View className="flex-row space-x-2 mt-2">
             <View className={`h-2 flex-1 rounded-full ${step >= 1 ? 'bg-teal-700' : 'bg-slate-200'}`} />
@@ -113,12 +115,12 @@ export default function OnboardingScreen() {
         {/* Step 1: Personal Details */}
         {step === 1 && (
           <View>
-            <Text className="text-2xl font-extrabold text-slate-900 mb-2">Personal Profile</Text>
-            <Text className="text-slate-500 mb-6">Please enter your basic profile information.</Text>
+            <Text className="text-2xl font-extrabold text-slate-900 mb-2">{t.onboarding.personalTitle}</Text>
+            <Text className="text-slate-500 mb-6">{t.onboarding.personalSubtitle}</Text>
 
             <View className="space-y-4">
               <View>
-                <Text className="text-slate-600 font-medium mb-2">Full Name *</Text>
+                <Text className="text-slate-600 font-medium mb-2">{t.onboarding.nameLabel}</Text>
                 <TextInput
                   className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
                   placeholder="e.g., Alex Johnson"
@@ -128,7 +130,7 @@ export default function OnboardingScreen() {
               </View>
 
               <View className="mt-4">
-                <Text className="text-slate-600 font-medium mb-2">Date of Birth (Optional)</Text>
+                <Text className="text-slate-600 font-medium mb-2">{t.onboarding.dobLabel}</Text>
                 <TextInput
                   className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
                   placeholder="YYYY-MM-DD"
@@ -143,15 +145,15 @@ export default function OnboardingScreen() {
         {/* Step 2: Health Info */}
         {step === 2 && (
           <View>
-            <Text className="text-2xl font-extrabold text-slate-900 mb-2">Health Profile</Text>
-            <Text className="text-slate-500 mb-6">These details help us customize your experience.</Text>
+            <Text className="text-2xl font-extrabold text-slate-900 mb-2">{t.onboarding.healthTitle}</Text>
+            <Text className="text-slate-500 mb-6">{t.onboarding.healthSubtitle}</Text>
 
             <View className="space-y-4">
               <View>
-                <Text className="text-slate-600 font-medium mb-2">Blood Group</Text>
+                <Text className="text-slate-600 font-medium mb-2">{t.onboarding.bloodGroupLabel}</Text>
                 <TextInput
                   className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
-                  placeholder="e.g., O+, A-"
+                  placeholder={t.onboarding.bloodGroupPlaceholder}
                   value={bloodGroup}
                   onChangeText={setBloodGroup}
                   autoCapitalize="characters"
@@ -159,20 +161,20 @@ export default function OnboardingScreen() {
               </View>
 
               <View className="mt-4">
-                <Text className="text-slate-600 font-medium mb-2">Allergies (Optional)</Text>
+                <Text className="text-slate-600 font-medium mb-2">{t.onboarding.allergiesLabel}</Text>
                 <TextInput
                   className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
-                  placeholder="e.g., Penicillin, Peanuts"
+                  placeholder={t.onboarding.allergiesPlaceholder}
                   value={allergies}
                   onChangeText={setAllergies}
                 />
               </View>
 
               <View className="mt-4">
-                <Text className="text-slate-600 font-medium mb-2">Medical Conditions (Optional)</Text>
+                <Text className="text-slate-600 font-medium mb-2">{t.onboarding.conditionsLabel}</Text>
                 <TextInput
                   className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
-                  placeholder="e.g., Hypertension, Asthma"
+                  placeholder={t.onboarding.conditionsPlaceholder}
                   value={medicalConditions}
                   onChangeText={setMedicalConditions}
                 />
@@ -184,12 +186,12 @@ export default function OnboardingScreen() {
         {/* Step 3: Emergency Profile */}
         {step === 3 && (
           <View>
-            <Text className="text-2xl font-extrabold text-slate-900 mb-2">Emergency Profile</Text>
-            <Text className="text-slate-500 mb-6">Who should we notify during an emergency SOS?</Text>
+            <Text className="text-2xl font-extrabold text-slate-900 mb-2">{t.onboarding.emergencyTitle}</Text>
+            <Text className="text-slate-500 mb-6">{t.onboarding.emergencySubtitle}</Text>
 
             <View className="space-y-4">
               <View>
-                <Text className="text-slate-600 font-medium mb-2">Emergency Contact Name *</Text>
+                <Text className="text-slate-600 font-medium mb-2">{t.onboarding.contactNameLabel}</Text>
                 <TextInput
                   className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
                   placeholder="e.g., Jane Johnson (Spouse)"
@@ -199,7 +201,7 @@ export default function OnboardingScreen() {
               </View>
 
               <View className="mt-4">
-                <Text className="text-slate-600 font-medium mb-2">Emergency Contact Phone *</Text>
+                <Text className="text-slate-600 font-medium mb-2">{t.onboarding.contactPhoneLabel}</Text>
                 <TextInput
                   className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
                   placeholder="e.g., +919876543210"
@@ -220,27 +222,27 @@ export default function OnboardingScreen() {
             onPress={handleBack}
             className="flex-1 border border-slate-200 bg-white py-4 rounded-2xl items-center active:bg-slate-50"
           >
-            <Text className="text-slate-700 text-lg font-semibold">Back</Text>
+            <Text className="text-slate-700 text-lg font-semibold">{t.onboarding.backButton}</Text>
           </TouchableOpacity>
         )}
 
         {step < 3 ? (
           <TouchableOpacity
             onPress={handleNext}
-            className="flex-1 bg-teal-700 py-4 rounded-2xl items-center active:bg-teal-800"
+            className="flex-1 bg-teal-700 py-4 rounded-2xl items-center mt-0 active:bg-teal-800"
           >
-            <Text className="text-white text-lg font-semibold">Continue</Text>
+            <Text className="text-white text-lg font-semibold">{t.onboarding.continueButton}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={loading}
-            className="flex-1 bg-teal-700 py-4 rounded-2xl items-center justify-center active:bg-teal-800"
+            className="flex-1 bg-teal-700 py-4 rounded-2xl items-center justify-center mt-0 active:bg-teal-800"
           >
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-white text-lg font-semibold">Submit</Text>
+              <Text className="text-white text-lg font-semibold">{t.onboarding.submitButton}</Text>
             )}
           </TouchableOpacity>
         )}

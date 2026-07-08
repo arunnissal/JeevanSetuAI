@@ -4,15 +4,17 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { register } from '../../api/auth';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTranslation } from '../../i18n';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [dob, setDob] = useState(''); // text input format YYYY-MM-DD for simplicity
+  const [dob, setDob] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +24,6 @@ export default function RegisterScreen() {
       return;
     }
 
-    // Basic date validation
     if (dob && !/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
       setError('Date of birth must be in YYYY-MM-DD format');
       return;
@@ -39,7 +40,7 @@ export default function RegisterScreen() {
       if (response.success && response.data) {
         const { tokens, user } = response.data;
         setAuth(tokens.access, tokens.refresh, user);
-        Alert.alert('Success', 'Account created successfully!');
+        Alert.alert(t.common.success, 'Account created successfully!');
       } else {
         setError(response.message || 'Registration failed');
       }
@@ -54,8 +55,8 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50 justify-between px-6 py-8">
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        <Text className="text-3xl font-extrabold text-slate-900 mb-2">Create Account</Text>
-        <Text className="text-slate-500 mb-8">Start your personalized digital health journey</Text>
+        <Text className="text-3xl font-extrabold text-slate-900 mb-2">{t.register.title}</Text>
+        <Text className="text-slate-500 mb-8">{t.register.subtitle}</Text>
 
         {error && (
           <View className="bg-red-50 border border-red-200 p-4 rounded-xl mb-6">
@@ -65,17 +66,17 @@ export default function RegisterScreen() {
 
         <View className="space-y-4">
           <View>
-            <Text className="text-slate-600 font-medium mb-2">Full Name *</Text>
+            <Text className="text-slate-600 font-medium mb-2">{t.register.nameLabel}</Text>
             <TextInput
               className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
-              placeholder="e.g., Alex Johnson"
+              placeholder={t.register.namePlaceholder}
               value={fullName}
               onChangeText={setFullName}
             />
           </View>
 
           <View className="mt-4">
-            <Text className="text-slate-600 font-medium mb-2">Email Address *</Text>
+            <Text className="text-slate-600 font-medium mb-2">{t.register.emailLabel}</Text>
             <TextInput
               className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
               placeholder="e.g., alex@example.com"
@@ -87,7 +88,7 @@ export default function RegisterScreen() {
           </View>
 
           <View className="mt-4">
-            <Text className="text-slate-600 font-medium mb-2">Password *</Text>
+            <Text className="text-slate-600 font-medium mb-2">{t.register.passwordLabel}</Text>
             <TextInput
               className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
               placeholder="••••••••"
@@ -99,10 +100,10 @@ export default function RegisterScreen() {
           </View>
 
           <View className="mt-4">
-            <Text className="text-slate-600 font-medium mb-2">Date of Birth (Optional)</Text>
+            <Text className="text-slate-600 font-medium mb-2">{t.register.dobLabel}</Text>
             <TextInput
               className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-950 focus:border-teal-700"
-              placeholder="YYYY-MM-DD"
+              placeholder={t.register.dobPlaceholder}
               value={dob}
               onChangeText={setDob}
             />
@@ -117,7 +118,7 @@ export default function RegisterScreen() {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white text-lg font-semibold">Sign Up</Text>
+            <Text className="text-white text-lg font-semibold">{t.register.signUpButton}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -125,7 +126,7 @@ export default function RegisterScreen() {
       <View className="items-center mt-6">
         <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
           <Text className="text-teal-700 font-medium text-base">
-            Already have an account? Sign In
+            {t.register.alreadyHaveAccount}
           </Text>
         </TouchableOpacity>
       </View>

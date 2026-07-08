@@ -30,6 +30,7 @@ class User(AbstractUser):
     full_name = models.CharField(max_length=255, blank=True)
     dob = models.DateField(null=True, blank=True)
     profile_progress = models.IntegerField(default=0) # 0 to 100 representing profile completeness
+    language = models.CharField(max_length=5, default='en')
 
     username = models.CharField(max_length=150, unique=True, blank=True, null=True)
 

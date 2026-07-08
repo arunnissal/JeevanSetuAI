@@ -65,8 +65,14 @@ class ProfileView(APIView):
         user = request.user
         data = request.data
 
+        # Validate request payload using UserSerializer
+        validator = UserSerializer(instance=user, data=data, partial=True)
+        if not validator.is_valid():
+            return error_response(errors=validator.errors, message="Validation failed")
+
         # Update base user fields
         user.full_name = data.get('full_name', user.full_name)
+        user.language = data.get('language', user.language)
         dob = data.get('dob')
         if dob:
             user.dob = dob
@@ -102,19 +108,22 @@ class ProfileView(APIView):
         # Save emergency profile, which will automatically sync blood_group and allergies from health_profile
         emergency_profile.save()
 
-        # Recalculate profile progress (completeness score)
-        completed_fields = 0
-        total_fields = 7
+        # Recalculate profile progress (completeness score) based on 4 equal sections:
+        # 1. Personal Information (full_name) = 25%
+        # 2. Health Information (blood_group) = 25%
+        # 3. Emergency Contact (emergency_contact_name and phone) = 25%
+        # 4. Preferred Language (language) = 25%
+        progress = 0
+        if user.full_name:
+            progress += 25
+        if health_profile.blood_group:
+            progress += 25
+        if emergency_profile.emergency_contact_name and emergency_profile.emergency_contact_phone:
+            progress += 25
+        if user.language:
+            progress += 25
 
-        if user.full_name: completed_fields += 1
-        if user.dob: completed_fields += 1
-        if health_profile.blood_group: completed_fields += 1
-        if health_profile.allergies: completed_fields += 1
-        if health_profile.medical_conditions: completed_fields += 1
-        if emergency_profile.emergency_contact_name: completed_fields += 1
-        if emergency_profile.emergency_contact_phone: completed_fields += 1
-
-        user.profile_progress = int((completed_fields / total_fields) * 100)
+        user.profile_progress = progress
         user.save()
 
         serializer = UserSerializer(user)

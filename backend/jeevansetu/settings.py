@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'apps.common',
     'apps.users',
@@ -143,9 +144,21 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True  # For dev/HackHazards ease, or we can restrict using CORS_ALLOWED_ORIGINS
 
+import os
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# Cloudinary Configuration
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME", "dummy"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY", "dummy"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET", "dummy"),
+    secure=True
+)
