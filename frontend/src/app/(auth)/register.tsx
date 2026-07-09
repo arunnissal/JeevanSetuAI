@@ -35,7 +35,9 @@ export default function RegisterScreen() {
 
     try {
       const payload: any = { email, password, full_name: fullName };
-      if (dob) payload.dob = dob;
+      if (dob && dob.trim() !== '') {
+        payload.dob = dob.trim();
+      }
 
       const response = await register(payload);
       if (response.success && response.data) {
