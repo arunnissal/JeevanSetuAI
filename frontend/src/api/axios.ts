@@ -4,9 +4,6 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1
 
 const apiClient = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
   timeout: 10000,
 });
 
@@ -16,8 +13,15 @@ if (__DEV__ || process.env.EXPO_PUBLIC_ENV === 'development') {
 
   apiClient.interceptors.request.use(
     (config) => {
+      const contentType = config.headers ? config.headers['Content-Type'] : undefined;
+      const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
+      
       console.log(`[Axios Request] ${config.method?.toUpperCase()} -> ${config.baseURL}${config.url}`);
-      if (config.data) {
+      console.log(`[Axios Content-Type]`, contentType);
+      console.log(`[Axios Is FormData]`, isFormData);
+      console.log(`[Axios Headers]`, config.headers);
+      
+      if (config.data && !isFormData) {
         console.log(`[Axios Request Body]`, config.data);
       }
       return config;
