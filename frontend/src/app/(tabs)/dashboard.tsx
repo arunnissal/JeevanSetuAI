@@ -52,7 +52,6 @@ export default function DashboardScreen() {
         setError(response.message || 'Failed to load dashboard data.');
       }
     } catch (err: any) {
-      // Never expose raw backend exceptions to the user
       setError(t.dashboard.errorDesc || 'Unable to retrieve dashboard. Please try again.');
     } finally {
       setLoading(false);
@@ -135,18 +134,14 @@ export default function DashboardScreen() {
     }
   };
 
-  // 1. Loading Skeleton Layout (Avoid full-screen spinners)
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 px-6 py-4">
         <ScrollView showsVerticalScrollIndicator={false} className="space-y-6">
-          {/* Greeting Skeleton */}
           <View className="h-14 justify-center">
             <View className="h-6 w-48 bg-slate-200 rounded-md animate-pulse" />
             <View className="h-4 w-60 bg-slate-200 rounded-md mt-2 animate-pulse" />
           </View>
-
-          {/* Profile Setup Checklist Skeleton */}
           <View className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
             <View className="h-4 w-40 bg-slate-200 rounded-md animate-pulse" />
             <View className="mt-4 space-y-3">
@@ -155,14 +150,10 @@ export default function DashboardScreen() {
               <View className="h-4 w-full bg-slate-100 rounded-md animate-pulse mt-2" />
             </View>
           </View>
-
-          {/* Insight Skeleton */}
           <View className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
             <View className="h-4 w-32 bg-slate-200 rounded-md animate-pulse" />
             <View className="h-16 w-full bg-slate-100 rounded-md mt-4 animate-pulse" />
           </View>
-
-          {/* Activity Skeleton */}
           <View className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
             <View className="h-4 w-36 bg-slate-200 rounded-md animate-pulse" />
             <View className="mt-4 space-y-3">
@@ -175,7 +166,6 @@ export default function DashboardScreen() {
     );
   }
 
-  // 2. Error Experience (Friendly illustration, Retry button, No raw exceptions)
   if (error || !data) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-8">
@@ -199,12 +189,11 @@ export default function DashboardScreen() {
   }
 
   const isProfileComplete = data.profile_progress === 100;
-  const isPersonalComplete = !data.missing_fields.includes('Personal Info'); // full_name check
   const isHealthComplete = !data.missing_fields.includes('Blood Group');
   const isEmergencyComplete = !data.missing_fields.includes('Emergency Contact');
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 px-6 py-4">
+    <SafeAreaView className="flex-1 bg-slate-50 px-6 py-4 relative">
       <ScrollView
         showsVerticalScrollIndicator={false}
         className="flex-1"
@@ -227,6 +216,26 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
+        {/* Premium AI Health Companion Card */}
+        <View className="bg-white border border-slate-200 p-5 rounded-2xl mb-6 shadow-sm">
+          <View className="flex-row items-center space-x-2.5 mb-2">
+            <Text className="text-xl">🤖</Text>
+            <Text className="text-slate-800 font-extrabold text-base">JeevanSetu AI</Text>
+          </View>
+          <Text className="text-slate-500 font-semibold text-xs mb-1.5 uppercase tracking-wider">
+            Your Personal Health Companion
+          </Text>
+          <Text className="text-slate-600 text-xs leading-relaxed mb-4">
+            Ask questions about your health journey, understand reports, compare results, and learn about your health in simple language.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(screens)/health-assistant')}
+            className="bg-teal-700 py-3.5 rounded-xl items-center flex-row justify-center space-x-2 active:bg-teal-800"
+          >
+            <Text className="text-white font-bold text-sm">Start Conversation →</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* 2. Digital Health Profile Checklist Card */}
         <View className="bg-white border border-slate-200 p-5 rounded-2xl mb-6 shadow-sm">
           <Text className="text-slate-400 font-semibold text-xs uppercase tracking-wider mb-4">
@@ -241,7 +250,6 @@ export default function DashboardScreen() {
             </View>
           ) : (
             <View className="space-y-3">
-              {/* Personal Information Setup */}
               <View className="flex-row items-center justify-between py-1">
                 <Text className="text-slate-700 text-sm font-medium">
                   {t.dashboard.personalInfo}
@@ -251,7 +259,6 @@ export default function DashboardScreen() {
                 </Text>
               </View>
 
-              {/* Health Information Setup */}
               <View className="flex-row items-center justify-between py-1 border-t border-slate-100">
                 <Text className="text-slate-700 text-sm font-medium">
                   {t.dashboard.healthInfo}
@@ -261,7 +268,6 @@ export default function DashboardScreen() {
                 </Text>
               </View>
 
-              {/* Emergency Contact Setup */}
               <View className="flex-row items-center justify-between py-1 border-t border-slate-100">
                 <Text className="text-slate-700 text-sm font-medium">
                   {t.dashboard.emergencyContact}
@@ -300,7 +306,6 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          /* 3. Empty Experience (Onboarding upload card) */
           <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-6 items-center shadow-sm">
             <Text className="text-4xl mb-3">📂</Text>
             <Text className="text-slate-800 font-extrabold text-lg text-center mb-2">
@@ -378,7 +383,7 @@ export default function DashboardScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* 6. Health Tip Card (deterministic daily tip rotation) */}
+        {/* 6. Health Tip Card */}
         <View className="bg-teal-50 border border-teal-100 p-5 rounded-2xl mb-8 shadow-sm">
           <Text className="text-teal-800 font-bold text-xs uppercase tracking-wider mb-2">
             💡 {t.dashboard.healthTipTitle}
@@ -388,6 +393,14 @@ export default function DashboardScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Floating Action Button (FAB) */}
+      <TouchableOpacity
+        onPress={() => router.push('/(screens)/health-assistant')}
+        className="absolute bottom-6 right-6 bg-teal-700 w-14 h-14 rounded-full items-center justify-center shadow-lg active:bg-teal-800 z-50"
+      >
+        <Text className="text-2xl text-white">💬</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }

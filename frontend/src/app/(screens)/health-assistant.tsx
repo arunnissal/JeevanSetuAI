@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
   clearChatHistory,
 } from '../../api/healthAssistant';
 import { colors } from '../../theme/colors';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface Message {
   id: string;
@@ -32,6 +33,9 @@ export default function HealthAssistantScreen() {
   const params = useLocalSearchParams();
   const recordId = params.record_id as string | undefined;
 
+  const { user } = useAuthStore();
+  const firstName = user?.fullName ? user.fullName.split(' ')[0] : 'there';
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -40,29 +44,44 @@ export default function HealthAssistantScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Suggested questions based on context
-  const suggestionList = recordId
-    ? [
-        'Explain this report',
-        'What do these findings mean?',
-        'What changed compared to my previous report?',
-        'What should I ask my doctor?',
-      ]
-    : [
-        'Explain my latest report',
-        'Summarize my health journey',
-        'What changed recently?',
-        'Explain my blood test',
-        'What medicines were mentioned?',
-        'Prepare me for my doctor visit',
-      ];
+  // Dynamic Header Title & Subtitle
+  const headerTitle = recordId ? '🩺 Report Assistant' : '🤖 JeevanSetu AI';
+  const headerSubtitle = recordId 
+    ? 'Ask questions about this specific report.' 
+    : 'Your Personal Health Companion';
+
+  // Dynamic Suggestion Starter Questions list
+  const suggestionList = useMemo(() => {
+    return recordId
+      ? [
+          'Explain this report',
+          'Compare with previous report',
+          'What does this value mean?',
+          'Should I worry?',
+        ]
+      : [
+          'Summarize my health',
+          'Compare my reports',
+          'Explain my latest report',
+          'What should I discuss with my doctor?',
+          'Explain cholesterol',
+          'Explain diabetes',
+          'How healthy am I?',
+        ];
+  }, [recordId]);
 
   const fetchHistory = async () => {
     try {
       setLoadingHistory(true);
       const res = await getChatHistory();
       if (res.success && res.data) {
-        setMessages(res.data);
+        // Filter chat history to match current scope:
+        // Report Assistant only shows messages matched to that record_id.
+        // Global Companion only shows messages without a record_id.
+        const filtered = res.data.filter((msg: any) => 
+          recordId ? msg.record_id === recordId : !msg.record_id
+        );
+        setMessages(filtered);
       }
     } catch (err) {
       console.warn('Failed to load chat history:', err);
@@ -74,7 +93,7 @@ export default function HealthAssistantScreen() {
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [recordId]);
 
   const handleSend = async (text: string) => {
     if (!text.trim() || sending) return;
@@ -82,7 +101,7 @@ export default function HealthAssistantScreen() {
     const userText = text.trim();
     setInputText('');
 
-    // Optimistically add user message
+    // Optimistically append user message
     const tempUserMsg: Message = {
       id: Math.random().toString(),
       role: 'user',
@@ -97,7 +116,6 @@ export default function HealthAssistantScreen() {
     try {
       const res = await sendMessageToAssistant(userText, recordId);
       if (res.success && res.data) {
-        // Replace/Append with actual response
         const assistantMsg: Message = {
           id: Math.random().toString(),
           role: 'assistant',
@@ -136,18 +154,14 @@ export default function HealthAssistantScreen() {
     const actualIdx = messages.length - 1 - lastUserMsgIndex;
     const lastUserText = messages[actualIdx].content;
 
-    // Remove any assistant responses after this user query
     setMessages((prev) => prev.slice(0, actualIdx + 1));
     handleSend(lastUserText);
   };
 
-  // Helper to parse bold, bullet points, and numbered lists into React Native text structures
   const renderMessageContent = (text: string) => {
     const lines = text.split('\n');
     return lines.map((line, idx) => {
-      // Check for bullet list
       const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*');
-      // Check for numbered list
       const isNumbered = /^\d+\.\s/.test(line.trim());
 
       const cleanLine = isBullet
@@ -156,7 +170,6 @@ export default function HealthAssistantScreen() {
         ? line.trim().replace(/^\d+\.\s*/, '')
         : line;
 
-      // Parse bold tags **text**
       const parts = cleanLine.split('**');
       const textElements = parts.map((part, pIdx) => {
         const isBold = pIdx % 2 === 1;
@@ -197,16 +210,17 @@ export default function HealthAssistantScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* 1. HEADER */}
+      
+      {/* 1. DYNAMIC HEADER */}
       <View className="flex-row items-center justify-between border-b border-slate-100 px-6 py-4">
         <View className="flex-row items-center space-x-3">
           <TouchableOpacity onPress={() => router.back()} className="py-2">
             <Text className="text-teal-700 text-base font-extrabold mr-1">⇠</Text>
           </TouchableOpacity>
           <View>
-            <Text className="text-lg font-extrabold text-slate-900">AI Health Assistant</Text>
+            <Text className="text-lg font-extrabold text-slate-900">{headerTitle}</Text>
             <Text className="text-[10px] text-slate-400 font-medium">
-              Understand your medical reports in simple language.
+              {headerSubtitle}
             </Text>
           </View>
         </View>
@@ -217,7 +231,6 @@ export default function HealthAssistantScreen() {
         )}
       </View>
 
-      {/* KeyboardAvoidingView for smooth inputs */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -242,27 +255,47 @@ export default function HealthAssistantScreen() {
               <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : messages.length === 0 ? (
-            /* EMPTY CHAT */
-            <View className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm items-center my-6">
-              <Text className="text-4xl mb-3">💬</Text>
-              <Text className="text-slate-800 font-extrabold text-base text-center mb-2">
-                Hello! I'm your AI Health Assistant.
-              </Text>
-              <Text className="text-slate-500 text-center text-xs leading-relaxed px-4">
-                I can help you understand your medical reports, explain health terms, summarize your health journey, and help you prepare for your next doctor visit.
-              </Text>
-            </View>
+            /* 3. WELCOME CARD (GLOBAL ONLY) OR CHAT INTRO */
+            !recordId ? (
+              <View className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm my-6">
+                <Text className="text-slate-800 font-extrabold text-base mb-2">
+                  Hello {firstName} 👋
+                </Text>
+                <Text className="text-slate-600 text-sm leading-relaxed mb-4">
+                  I'm JeevanSetu AI. I've reviewed your available health information and reports.
+                </Text>
+                <Text className="text-slate-800 font-bold text-xs mb-2">I can help you:</Text>
+                <View className="space-y-1.5 mb-4">
+                  <Text className="text-slate-600 text-xs pl-2">• Understand medical reports</Text>
+                  <Text className="text-slate-600 text-xs pl-2">• Compare complex health trends</Text>
+                  <Text className="text-slate-600 text-xs pl-2">• Explain difficult medical terms</Text>
+                  <Text className="text-slate-600 text-xs pl-2">• Prepare for doctor visits</Text>
+                </View>
+                <Text className="text-slate-800 font-extrabold text-xs">
+                  What would you like to know today?
+                </Text>
+              </View>
+            ) : (
+              <View className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm items-center my-6">
+                <Text className="text-4xl mb-3">💬</Text>
+                <Text className="text-slate-800 font-extrabold text-base text-center mb-2">
+                  Hello! I'm your Report Assistant.
+                </Text>
+                <Text className="text-slate-500 text-center text-xs leading-relaxed px-4">
+                  Ask me any questions about the parameters, findings, or healthy ranges listed inside this specific medical report.
+                </Text>
+              </View>
+            )
           ) : (
-            /* CHAT MESSAGE LIST */
+            /* 4. PREMIUM CONVERSATION BUBBLE LAYOUT */
             <View className="space-y-4">
               {messages.map((msg, index) => {
                 const isUser = msg.role === 'user';
-                // Context helper header above AI bubble
                 const showContextHelper = !isUser && index > 0 && messages[index - 1].role === 'user';
-                const contextText = recordId ? "Based on your selected Blood Test" : "Based on your Health Journey";
+                const contextText = recordId ? "Based on your selected report" : "Based on your Health Journey";
 
                 return (
-                  <View key={index} className={`flex-row ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  <View key={index} className={`flex-row ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
                     <View className="max-w-[85%]">
                       {showContextHelper && (
                         <Text className="text-[10px] text-slate-400 font-semibold mb-1 pl-1">
@@ -279,7 +312,7 @@ export default function HealthAssistantScreen() {
                         }`}
                       >
                         {renderMessageContent(msg.content)}
-                        <View className="flex-row justify-end space-x-2 mt-1.5 border-t border-slate-50 pt-1.5">
+                        <View className="flex-row justify-end space-x-2.5 mt-2 border-t border-slate-50 pt-1.5">
                           <TouchableOpacity onPress={() => handleCopy(msg.content)}>
                             <Text className="text-[10px] font-bold text-slate-400 uppercase">Copy</Text>
                           </TouchableOpacity>
@@ -297,7 +330,7 @@ export default function HealthAssistantScreen() {
             </View>
           )}
 
-          {/* 3. CONVERSATION STARTERS (Chips) */}
+          {/* 5. SUGGESTION STARTERS (disappears after the first message) */}
           {!loadingHistory && messages.length === 0 && (
             <View className="mt-4">
               <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2.5">
@@ -317,12 +350,12 @@ export default function HealthAssistantScreen() {
             </View>
           )}
 
-          {/* 6. TYPING INDICATOR */}
+          {/* 6. ANIMATED TYPING INDICATOR */}
           {sending && (
             <View className="flex-row justify-start mt-4">
-              <View className="bg-slate-50 border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[85%]">
-                <Text className="text-slate-400 text-xs font-semibold italic animate-pulse">
-                  AI Health Assistant is preparing your response...
+              <View className="bg-slate-100 border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[85%]">
+                <Text className="text-slate-500 text-xs font-semibold">
+                  JeevanSetu AI is thinking...
                 </Text>
               </View>
             </View>
@@ -342,12 +375,12 @@ export default function HealthAssistantScreen() {
           )}
         </ScrollView>
 
-        {/* INPUT INPUT BOX */}
+        {/* INPUT BOX */}
         <View className="border-t border-slate-100 bg-white px-6 py-4 flex-row items-center space-x-3">
           <TextInput
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Ask anything about your health journey..."
+            placeholder={recordId ? "Ask about this report..." : "Ask anything about your health journey..."}
             placeholderTextColor="#94a3b8"
             className="flex-1 bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl text-slate-800 text-sm"
           />
