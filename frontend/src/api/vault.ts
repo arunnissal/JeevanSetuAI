@@ -11,6 +11,17 @@ export const uploadReport = async (formData: FormData) => {
   if (Platform.OS !== 'web') {
     headers['Content-Type'] = 'multipart/form-data';
   }
+
+  console.log("========== INSIDE uploadReport ==========");
+
+  for (const pair of formData.entries()) {
+    console.log("FormData:", pair[0], pair[1]);
+  }
+
+  console.log("Platform:", Platform.OS);
+
+  console.log("========================================");
+
   const response = await apiClient.post('/vault/upload', formData, { headers });
   return response.data;
 };

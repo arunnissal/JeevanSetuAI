@@ -150,6 +150,15 @@ export default function UploadScreen() {
 
       formData.append('record_type', selectedType);
 
+      console.log("========== BEFORE uploadReport ==========");
+      console.log("Selected File:", selectedFile);
+
+      for (const pair of formData.entries()) {
+        console.log("FormData:", pair[0], pair[1]);
+      }
+
+      console.log("========================================");
+
       setUploadProgress(40);
       const response = await uploadReport(formData);
       setUploadProgress(80);
