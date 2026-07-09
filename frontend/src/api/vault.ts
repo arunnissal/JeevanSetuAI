@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import apiClient from './axios';
 
 export const getVaultRecords = async () => {
@@ -6,11 +7,11 @@ export const getVaultRecords = async () => {
 };
 
 export const uploadReport = async (formData: FormData) => {
-  const response = await apiClient.post('/vault/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const headers: any = {};
+  if (Platform.OS !== 'web') {
+    headers['Content-Type'] = 'multipart/form-data';
+  }
+  const response = await apiClient.post('/vault/upload', formData, { headers });
   return response.data;
 };
 

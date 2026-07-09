@@ -40,6 +40,7 @@ class UploadRecordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        print("[UploadRecordView] FILES received:", list(request.FILES.keys()))
         file_obj = request.FILES.get('file')
         if not file_obj:
             return error_response(message="No file uploaded. Please upload a file with the key 'file'.")

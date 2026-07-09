@@ -124,19 +124,30 @@ export default function UploadScreen() {
   const handleUpload = async () => {
     if (!selectedFile || !selectedType) return;
 
+    if (!selectedFile.uri || !selectedFile.name) {
+      Alert.alert('Upload Error', 'Selected file has missing uri or name. Please re-select the file.');
+      return;
+    }
+
     setUploading(true);
     setUploadProgress(10);
 
     try {
       const formData = new FormData();
       
-      const filePayload = {
-        uri: selectedFile.uri,
-        name: selectedFile.name,
-        type: selectedFile.type,
-      } as any;
+      if (Platform.OS === 'web') {
+        const response = await fetch(selectedFile.uri);
+        const blob = await response.blob();
+        formData.append('file', blob, selectedFile.name);
+      } else {
+        const filePayload = {
+          uri: selectedFile.uri,
+          name: selectedFile.name,
+          type: selectedFile.type,
+        } as any;
+        formData.append('file', filePayload);
+      }
 
-      formData.append('file', filePayload);
       formData.append('record_type', selectedType);
 
       setUploadProgress(40);
