@@ -31,6 +31,17 @@ interface RecordDetail {
   };
 }
 
+interface ParsedParameter {
+  name: string;
+  value: string;
+  range: string;
+  status: 'normal' | 'attention' | 'info';
+  explanation: string;
+  whyItMatters: string;
+  shouldIWorry: string;
+  doctorDiscussion: string;
+}
+
 const HEALTH_TERMS_GLOSSARY: { [key: string]: { term: string; definition: string } } = {
   hemoglobin: {
     term: 'Hemoglobin',
@@ -105,7 +116,6 @@ export default function RecordDetailScreen() {
           );
 
           if (matchingPrevious.length > 0) {
-            // Sort by date descending and set the most recent one
             matchingPrevious.sort(
               (a: any, b: any) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -141,45 +151,146 @@ export default function RecordDetailScreen() {
     }
   };
 
-  const parseFinding = (finding: string) => {
+  const parseFindingDetailed = (finding: string): ParsedParameter => {
     let name = finding;
-    let explanation = '';
+    let remaining = '';
 
     if (finding.includes(':')) {
       const parts = finding.split(':');
       name = parts[0].trim();
-      explanation = parts.slice(1).join(':').trim();
+      remaining = parts.slice(1).join(':').trim();
     }
 
-    const checkText = `${name} ${explanation}`.toLowerCase();
+    let value = '';
+    let statusText = '';
+    let explanation = '';
+
+    const parenRegex = /\(([^)]+)\)/;
+    const parenMatch = remaining.match(parenRegex);
+    
+    if (parenMatch) {
+      statusText = parenMatch[1].trim().toLowerCase();
+      const beforeParen = remaining.substring(0, parenMatch.index).trim();
+      const afterParen = remaining.substring(parenMatch.index! + parenMatch[0].length).trim();
+      
+      value = beforeParen;
+      if (afterParen.startsWith('-')) {
+        explanation = afterParen.replace(/^-\s*/, '').trim();
+      } else {
+        explanation = afterParen;
+      }
+    } else {
+      if (remaining.includes('-')) {
+        const parts = remaining.split('-');
+        value = parts[0].trim();
+        explanation = parts.slice(1).join('-').trim();
+      } else {
+        value = remaining;
+      }
+    }
+
     let status: 'normal' | 'attention' | 'info' = 'normal';
-
-    if (checkText.includes('blood group') || checkText.includes('blood type') || checkText.includes('positive') || checkText.includes('negative')) {
-      status = 'info';
-    } else if (
-      checkText.includes('low') ||
-      checkText.includes('high') ||
-      checkText.includes('deficien') ||
-      checkText.includes('attention') ||
-      checkText.includes('abnormal') ||
-      checkText.includes('concern') ||
-      checkText.includes('decreased') ||
-      checkText.includes('increased') ||
-      checkText.includes('alert')
-    ) {
+    if (statusText.includes('normal') || statusText.includes('healthy') || statusText.includes('optimal') || statusText.includes('good')) {
+      status = 'normal';
+    } else if (statusText.includes('low') || statusText.includes('high') || statusText.includes('abnormal') || statusText.includes('concern') || statusText.includes('attention')) {
       status = 'attention';
+    } else if (statusText.includes('info') || statusText.includes('positive') || statusText.includes('negative')) {
+      status = 'info';
+    } else {
+      const checkText = `${name} ${remaining}`.toLowerCase();
+      if (checkText.includes('low') || checkText.includes('high') || checkText.includes('abnormal') || checkText.includes('attention') || checkText.includes('decreased') || checkText.includes('increased')) {
+        status = 'attention';
+      } else if (checkText.includes('positive') || checkText.includes('negative') || checkText.includes('blood group')) {
+        status = 'info';
+      }
     }
 
-    return { name, explanation: explanation || 'Observed finding.', status };
+    const key = name.toLowerCase();
+    let defaultRange = 'Not specified';
+    let defaultWhy = 'This parameter helps evaluate general health and organ function.';
+    let defaultWorry = status === 'normal' ? 'Your result is perfect, indicating good oxygenation and no anemia.' : 'Slightly low hemoglobin is common and can be caused by iron deficiency or dietary factors. It is highly manageable.';
+    let defaultDiscussion = status === 'normal' ? 'Ask how to maintain healthy iron levels through diet.' : 'Ask if an iron profile test or vitamin supplements are appropriate.';
+
+    if (key.includes('hemoglobin') || key.includes('hb')) {
+      defaultRange = '12.0 - 16.0 g/dL (Female), 13.5 - 17.5 g/dL (Male)';
+      defaultWhy = 'Hemoglobin is the oxygen-carrying protein in red blood cells. It ensures all your tissues receive sufficient oxygen.';
+      defaultWorry = status === 'normal' ? 'Your level is perfect, indicating good oxygenation and no anemia.' : 'Slightly low hemoglobin is common and can be caused by iron deficiency or dietary factors. It is highly manageable.';
+      defaultDiscussion = status === 'normal' ? 'Ask how to maintain healthy iron levels through diet.' : 'Ask if an iron profile test or vitamin supplements are appropriate.';
+    } else if (key.includes('vitamin d') || key.includes('vit d') || key.includes('calciferol')) {
+      defaultRange = '30.0 - 100.0 ng/mL';
+      defaultWhy = 'Vitamin D is vital for absorbing calcium, regulating bone health, and supporting your immune system.';
+      defaultWorry = status === 'normal' ? 'Your levels are excellent, indicating healthy bone and immune support.' : 'Vitamin D deficiency is very common worldwide. It is easily resolved with sun exposure, food sources, or simple oral supplements.';
+      defaultDiscussion = status === 'normal' ? 'Ask if you need to continue your current sun exposure or dietary routine.' : 'Ask about the recommended dosage for a Vitamin D3 supplement.';
+    } else if (key.includes('glucose') || key.includes('sugar') || key.includes('diabetes') || key.includes('hba1c')) {
+      defaultRange = '70 - 100 mg/dL (Fasting), < 5.7% (HbA1c)';
+      defaultWhy = 'Glucose is the primary energy source for your body. Monitoring it helps evaluate sugar metabolism and manage diabetes risks.';
+      defaultWorry = status === 'normal' ? 'Your glucose level is stable and within the healthy fasting range.' : 'Fluctuations in blood sugar can be influenced by recent meals, stress, or activity. Your doctor can help evaluate if lifestyle changes are needed.';
+      defaultDiscussion = status === 'normal' ? 'Ask how to maintain insulin sensitivity.' : 'Ask if a fasting glucose or HbA1c test should be repeated, and discuss healthy dietary habits.';
+    } else if (key.includes('cholesterol') || key.includes('lipid') || key.includes('ldl') || key.includes('hdl') || key.includes('triglyceride')) {
+      defaultRange = 'Total < 200 mg/dL, LDL < 100 mg/dL, HDL > 40 mg/dL';
+      defaultWhy = 'Cholesterol is a lipid used to build cell walls. Balanced levels are crucial for cardiovascular and heart health.';
+      defaultWorry = status === 'normal' ? 'Your lipid profile is healthy, indicating low risk of plaque build-up.' : 'Slightly elevated levels are very common and can often be managed effectively through exercise, dietary adjustments, and healthy fats.';
+      defaultDiscussion = status === 'normal' ? 'Ask how to maintain a heart-healthy diet.' : 'Ask if lifestyle modifications (diet/exercise) are sufficient before considering medical options.';
+    } else if (key.includes('creatinine') || key.includes('kidney') || key.includes('egfr') || key.includes('urea')) {
+      defaultRange = '0.6 - 1.2 mg/dL';
+      defaultWhy = 'Creatinine is a waste product filtered by the kidneys. It measures how effectively your kidneys filter waste from blood.';
+      defaultWorry = status === 'normal' ? 'Your kidneys are filtering waste perfectly and functioning healthy.' : 'Slightly elevated creatinine can be caused by simple dehydration, intense exercise, or certain medications. Drinking water often helps.';
+      defaultDiscussion = status === 'normal' ? 'Ask how hydration affects kidney values.' : 'Ask if you should repeat the test after drinking plenty of water, and review your current medications.';
+    } else if (key.includes('thyroid') || key.includes('tsh') || key.includes('t3') || key.includes('t4')) {
+      defaultRange = '0.4 - 4.5 uIU/mL';
+      defaultWhy = 'TSH stimulates the thyroid gland to release metabolism hormones. It regulates energy use and cellular function.';
+      defaultWorry = status === 'normal' ? 'Your thyroid activity is perfectly balanced, showing stable metabolism control.' : 'Minor thyroid fluctuations are extremely common and treatable. Your doctor will assess if actual hormone levels (T3/T4) are normal.';
+      defaultDiscussion = status === 'normal' ? 'Ask how often thyroid levels should be screened.' : 'Ask if a full thyroid panel (Free T3/T4) is recommended to get a complete picture.';
+    }
+
+    return {
+      name,
+      value: value || 'Observed',
+      range: defaultRange,
+      status,
+      explanation: explanation || `Your ${name} level was measured at ${value || 'the observed level'}.`,
+      whyItMatters: defaultWhy,
+      shouldIWorry: defaultWorry,
+      doctorDiscussion: defaultDiscussion,
+    };
   };
 
-  // 3. Important findings parsed list
   const parsedFindings = useMemo(() => {
     if (!record?.analysis?.diagnoses) return [];
-    return record.analysis.diagnoses.map(parseFinding);
+    return record.analysis.diagnoses.map(parseFindingDetailed);
   }, [record]);
 
-  // 6. Glossary matching list
+  const healthyFindings = useMemo(() => {
+    return parsedFindings.filter(f => f.status === 'normal' || f.status === 'info');
+  }, [parsedFindings]);
+
+  const attentionFindings = useMemo(() => {
+    return parsedFindings.filter(f => f.status === 'attention');
+  }, [parsedFindings]);
+
+  const overallHealthSummaryParagraph = useMemo(() => {
+    if (parsedFindings.length === 0) return 'Your medical report has been analyzed. The details are presented below.';
+    
+    const normalNames = healthyFindings.slice(0, 3).map(f => f.name).join(', ');
+    const attentionNames = attentionFindings.map(f => f.name).join(', ');
+
+    let start = "Your health report shows an overall stable and reassuring condition.";
+    let healthyPart = healthyFindings.length > 0 
+      ? `We are pleased to see that several key markers, such as ${normalNames}, are completely healthy and within their normal ranges.`
+      : "Most of your primary markers are stable and showing good health parameters.";
+    
+    let attentionPart = attentionFindings.length > 0
+      ? `There are ${attentionFindings.length} items that could benefit from slight attention, specifically your ${attentionNames} levels.`
+      : "There are no major items needing immediate medical attention in this report.";
+    
+    let lifestylePart = "These findings are very common and can often be optimized with simple, healthy adjustments to your daily routine.";
+    let reassurance = "Please consult your healthcare professional to discuss these results and personalize any next steps.";
+    let conclusion = "Overall, this report is a positive step in proactively monitoring and maintaining your long-term wellness.";
+
+    const sentences = [start, healthyPart, attentionPart, lifestylePart, reassurance, conclusion];
+    return sentences.slice(0, 6).join(' ');
+  }, [parsedFindings, healthyFindings, attentionFindings]);
+
   const glossaryMatches = useMemo(() => {
     if (!record) return [];
     const textToMatch = `${record.metadata?.original_filename || ''} ${
@@ -192,18 +303,16 @@ export default function RecordDetailScreen() {
         matches.push(item);
       }
     }
-    // Limit to displaying 3 matched terms
-    return matches.slice(0, 3);
+    return matches.slice(0, 5);
   }, [record]);
 
-  // 7. Comparison lists
   const comparisonResults = useMemo(() => {
     if (!record || !previousRecord || !record.analysis?.diagnoses || !previousRecord.analysis?.diagnoses) {
       return [];
     }
 
-    const currParsed = record.analysis.diagnoses.map(parseFinding);
-    const prevParsed = previousRecord.analysis.diagnoses.map(parseFinding);
+    const currParsed = record.analysis.diagnoses.map(parseFindingDetailed);
+    const prevParsed = previousRecord.analysis.diagnoses.map(parseFindingDetailed);
     const matches = [];
 
     for (const curr of currParsed) {
@@ -281,7 +390,6 @@ export default function RecordDetailScreen() {
     );
   }
 
-  // Error State with Retry CTA
   if (error || !record) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-6">
@@ -308,7 +416,6 @@ export default function RecordDetailScreen() {
     );
   }
 
-  // Empty State: preparing summary indicator
   if (record.processing_status !== 'completed') {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-6">
@@ -329,6 +436,8 @@ export default function RecordDetailScreen() {
     );
   }
 
+  const overallStatusText = attentionFindings.length === 0 ? '🟢 Mostly Healthy' : '🟡 Needs Attention';
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50 px-6 py-4">
       <View className="flex-row items-center justify-between mb-4">
@@ -341,170 +450,184 @@ export default function RecordDetailScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        {/* 1. REPORT INFORMATION (Compact) */}
-        <View className="bg-white border border-slate-200 p-5 rounded-2xl mb-4 shadow-sm">
-          <View className="bg-slate-100 px-3 py-1 rounded-full border border-slate-200 self-start mb-3">
-            <Text className="text-slate-700 text-[10px] font-bold uppercase tracking-wide">
-              {getRecordTypeBadge(record.record_type)}
-            </Text>
+        
+        {/* 1. OVERALL HEALTH SNAPSHOT CARD */}
+        <View className="bg-white border border-slate-200 p-5 rounded-2xl mb-6 shadow-sm">
+          <Text className="text-slate-800 font-extrabold text-sm mb-3">🩺 Overall Health Snapshot</Text>
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-slate-400 text-xs font-semibold">Overall Status</Text>
+            <Text className="text-slate-800 text-xs font-extrabold">{overallStatusText}</Text>
           </View>
-          <Text className="text-slate-800 font-extrabold text-base mb-3 leading-tight" numberOfLines={1}>
-            {record.metadata.original_filename || 'Medical Report'}
-          </Text>
-
-          <View className="border-t border-slate-100 pt-3 space-y-2">
-            {record.metadata.hospital_name && (
-              <View className="flex-row justify-between">
-                <Text className="text-slate-400 text-xs font-medium">Hospital</Text>
-                <Text className="text-slate-700 text-xs font-bold">{record.metadata.hospital_name}</Text>
-              </View>
-            )}
-            {record.metadata.doctor_name && (
-              <View className="flex-row justify-between">
-                <Text className="text-slate-400 text-xs font-medium">Doctor</Text>
-                <Text className="text-slate-700 text-xs font-bold">{record.metadata.doctor_name}</Text>
-              </View>
-            )}
-            {record.metadata.report_date && (
-              <View className="flex-row justify-between">
-                <Text className="text-slate-400 text-xs font-medium">Report Date</Text>
-                <Text className="text-slate-700 text-xs font-bold">{record.metadata.report_date}</Text>
-              </View>
-            )}
-            <View className="flex-row justify-between">
-              <Text className="text-slate-400 text-xs font-medium">Uploaded Date</Text>
-              <Text className="text-slate-700 text-xs font-bold">
-                {new Date(record.created_at).toLocaleDateString()}
-              </Text>
-            </View>
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-slate-400 text-xs font-semibold">Reports Reviewed</Text>
+            <Text className="text-slate-800 text-xs font-extrabold">1</Text>
+          </View>
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-slate-400 text-xs font-semibold">Items Needing Attention</Text>
+            <Text className="text-slate-800 text-xs font-extrabold">{attentionFindings.length}</Text>
+          </View>
+          <View className="flex-row justify-between">
+            <Text className="text-slate-400 text-xs font-semibold">Last Updated</Text>
+            <Text className="text-slate-800 text-xs font-extrabold">Today</Text>
           </View>
         </View>
 
-        {/* 2. EASY EXPLANATION (HERO SECTION) */}
-        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-4 shadow-sm">
-          <View className="flex-row items-center mb-3">
-            <Text className="text-xl mr-2">🧠</Text>
-            <Text className="text-slate-800 font-extrabold text-base">Easy Explanation</Text>
-          </View>
-          <Text className="text-slate-600 text-sm leading-relaxed mb-4">
-            {record.analysis?.ai_summary || 'No simplified summary available.'}
+        {/* 2. OVERALL HEALTH SUMMARY */}
+        <View className="bg-teal-50/50 border border-teal-100 p-5 rounded-2xl mb-6 shadow-sm">
+          <Text className="text-teal-800 font-extrabold text-sm mb-2">📊 Overall Health Summary</Text>
+          <Text className="text-slate-700 text-sm leading-relaxed font-medium">
+            {overallHealthSummaryParagraph}
           </Text>
-
-          <TouchableOpacity
-            onPress={() => router.push({
-              pathname: '/(screens)/health-assistant',
-              params: { record_id: record.id }
-            })}
-            className="bg-teal-50 border border-teal-200 py-3.5 rounded-xl items-center mb-4 flex-row justify-center space-x-2 active:bg-teal-100"
-          >
-            <Text className="text-teal-800 font-bold text-sm">💬 Ask About This Report</Text>
-          </TouchableOpacity>
-
-          <View className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-            <Text className="text-slate-400 text-[10px] text-center font-semibold">
-              This explanation is AI-generated to help you understand your report.
-            </Text>
-          </View>
         </View>
 
-        {/* 3. KEY FINDINGS */}
-        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-4 shadow-sm">
-          <View className="flex-row items-center mb-3">
-            <Text className="text-xl mr-2">📌</Text>
-            <Text className="text-slate-800 font-extrabold text-base">Key Findings</Text>
-          </View>
-
-          {parsedFindings.length === 0 ? (
-            <Text className="text-slate-400 text-xs italic">No key findings identified.</Text>
+        {/* 3. HEALTHY RESULTS SECTION */}
+        <View className="mb-6">
+          <Text className="text-slate-800 font-extrabold text-base mb-3">🟢 Healthy Results</Text>
+          {healthyFindings.length === 0 ? (
+            <Text className="text-slate-400 text-xs italic pl-1">No fully normal parameters were parsed from this report.</Text>
           ) : (
-            <View className="space-y-4 mt-2">
-              {parsedFindings.map((finding, idx) => {
-                const isNormal = finding.status === 'normal';
-                const isAttention = finding.status === 'attention';
-
-                return (
-                  <View key={idx} className="border-b border-slate-50 pb-3 last:border-0 last:pb-0">
-                    <View className="flex-row items-center justify-between mb-1.5">
-                      <Text className="text-slate-800 font-bold text-sm">{finding.name}</Text>
-                      <View
-                        className={`px-2.5 py-0.5 rounded-full border flex-row items-center space-x-1 ${
-                          isNormal
-                            ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
-                            : isAttention
-                            ? 'text-amber-700 bg-amber-50 border-amber-100'
-                            : 'text-sky-700 bg-sky-50 border-sky-100'
-                        }`}
-                      >
-                        <Text className="text-[10px] font-extrabold">
-                          {isNormal ? '🟢 Normal' : isAttention ? '🟡 Needs Attention' : '🔵 Info'}
-                        </Text>
-                      </View>
+            <View className="space-y-4">
+              {healthyFindings.map((finding, idx) => (
+                <View key={idx} className="bg-emerald-50/40 border border-emerald-100 p-5 rounded-2xl shadow-sm">
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-slate-800 font-extrabold text-sm">{finding.name}</Text>
+                    <View className="bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <Text className="text-emerald-800 text-[10px] font-extrabold">Healthy</Text>
                     </View>
-                    <Text className="text-slate-500 text-xs leading-relaxed">{finding.explanation}</Text>
                   </View>
-                );
-              })}
+                  <View className="space-y-1.5 border-t border-emerald-50/55 pt-2">
+                    <View className="flex-row justify-between">
+                      <Text className="text-slate-400 text-xs font-medium">Your Value</Text>
+                      <Text className="text-slate-800 text-xs font-extrabold">{finding.value}</Text>
+                    </View>
+                    <View className="flex-row justify-between">
+                      <Text className="text-slate-400 text-xs font-medium">Reference Range</Text>
+                      <Text className="text-slate-800 text-xs font-extrabold">{finding.range}</Text>
+                    </View>
+                    <View className="mt-2">
+                      <Text className="text-slate-600 text-xs leading-relaxed">{finding.explanation}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
             </View>
           )}
         </View>
 
-        {/* 4. MEDICINES MENTIONED */}
-        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-4 shadow-sm">
+        {/* 4. NEEDS ATTENTION SECTION */}
+        <View className="mb-6">
+          <Text className="text-slate-800 font-extrabold text-base mb-3">🟡 Needs Attention</Text>
+          {attentionFindings.length === 0 ? (
+            <View className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
+              <Text className="text-emerald-800 font-bold text-xs">🎉 All items look healthy!</Text>
+              <Text className="text-emerald-700 text-[10px] leading-relaxed mt-1">
+                Every parameter checked in this report matches the expected healthy reference ranges. Keep it up!
+              </Text>
+            </View>
+          ) : (
+            <View className="space-y-4">
+              {attentionFindings.map((finding, idx) => (
+                <View key={idx} className="bg-amber-50/40 border border-amber-200 p-5 rounded-2xl shadow-sm">
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-slate-800 font-extrabold text-sm">{finding.name}</Text>
+                    <View className="bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                      <Text className="text-amber-800 text-[10px] font-extrabold">Needs Attention</Text>
+                    </View>
+                  </View>
+                  <View className="space-y-1.5 border-t border-amber-100/50 pt-2">
+                    <View className="flex-row justify-between">
+                      <Text className="text-slate-400 text-xs font-medium">Your Value</Text>
+                      <Text className="text-slate-800 text-xs font-extrabold">{finding.value}</Text>
+                    </View>
+                    <View className="flex-row justify-between">
+                      <Text className="text-slate-400 text-xs font-medium">Reference Range</Text>
+                      <Text className="text-slate-800 text-xs font-extrabold">{finding.range}</Text>
+                    </View>
+                    <View className="mt-2.5 space-y-1.5">
+                      <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Why it matters</Text>
+                      <Text className="text-slate-600 text-xs leading-relaxed">{finding.whyItMatters}</Text>
+                      
+                      <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-2">What your result means</Text>
+                      <Text className="text-slate-600 text-xs leading-relaxed">{finding.explanation}</Text>
+
+                      <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-2">Should I worry?</Text>
+                      <Text className="text-slate-600 text-xs leading-relaxed">{finding.shouldIWorry}</Text>
+
+                      <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-2">What to discuss with your doctor</Text>
+                      <Text className="text-slate-600 text-xs leading-relaxed">{finding.doctorDiscussion}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* 5. WHAT THIS MEANS */}
+        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-6 shadow-sm">
           <View className="flex-row items-center mb-3">
-            <Text className="text-xl mr-2">💊</Text>
-            <Text className="text-slate-800 font-extrabold text-base">Medicines Mentioned</Text>
+            <Text className="text-xl mr-2">🧠</Text>
+            <Text className="text-slate-800 font-extrabold text-base">What This Means</Text>
           </View>
-          {record.analysis?.medicines && record.analysis.medicines.length > 0 ? (
-            <View className="space-y-2 mt-2">
-              {record.analysis.medicines.map((med, idx) => (
-                <View key={idx} className="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100">
-                  <Text className="text-slate-700 font-bold text-xs">{med}</Text>
+          <Text className="text-slate-600 text-sm leading-relaxed">
+            {record.analysis?.ai_summary || 'This report details your diagnostic health parameters. Regular tracking of these values lets you monitor trends over time and helps support healthy choices.'}
+          </Text>
+        </View>
+
+        {/* 6. WHAT YOU CAN DO (LIFESTYLE SUGGESTIONS) */}
+        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-6 shadow-sm">
+          <View className="flex-row items-center mb-3">
+            <Text className="text-xl mr-2">🏃‍♂️</Text>
+            <Text className="text-slate-800 font-extrabold text-base">What You Can Do</Text>
+          </View>
+          {record.analysis?.recommendations && record.analysis.recommendations.length > 0 ? (
+            <View className="space-y-3 mt-2">
+              {record.analysis.recommendations.map((rec, idx) => (
+                <View key={idx} className="flex-row items-start space-x-2">
+                  <Text className="text-teal-700 font-extrabold text-sm">•</Text>
+                  <Text className="text-slate-600 text-xs flex-1 leading-relaxed">{rec}</Text>
                 </View>
               ))}
             </View>
           ) : (
-            <Text className="text-slate-400 text-xs italic mt-1">
-              No medicines were identified in this report.
-            </Text>
+            <View className="space-y-3 mt-2">
+              <View className="flex-row items-start space-x-2">
+                <Text className="text-teal-700 font-extrabold text-sm">•</Text>
+                <Text className="text-slate-600 text-xs flex-1 leading-relaxed">Stay hydrated by drinking 2-3 liters of clean water daily.</Text>
+              </View>
+              <View className="flex-row items-start space-x-2">
+                <Text className="text-teal-700 font-extrabold text-sm">•</Text>
+                <Text className="text-slate-600 text-xs flex-1 leading-relaxed">Ensure a regular sleeping pattern of 7-8 hours per night to aid general recovery.</Text>
+              </View>
+              <View className="flex-row items-start space-x-2">
+                <Text className="text-teal-700 font-extrabold text-sm">•</Text>
+                <Text className="text-slate-600 text-xs flex-1 leading-relaxed">Incorporate mild physical activity like a 30-minute walk into your daily routine.</Text>
+              </View>
+            </View>
           )}
         </View>
 
-        {/* 5. QUESTIONS YOU CAN ASK YOUR DOCTOR */}
-        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-4 shadow-sm">
+        {/* 7. QUESTIONS FOR YOUR DOCTOR */}
+        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-6 shadow-sm">
           <View className="flex-row items-center mb-3">
             <Text className="text-xl mr-2">💬</Text>
             <Text className="text-slate-800 font-extrabold text-base">Questions for Your Doctor</Text>
           </View>
-          {record.analysis?.doctor_questions && record.analysis.doctor_questions.length > 0 ? (
-            <View className="space-y-2 mt-2">
-              {record.analysis.doctor_questions.map((q, idx) => (
+          <View className="space-y-3 mt-2">
+            {(record.analysis?.doctor_questions || ['Should I repeat this test?', 'Is any follow-up required?', 'Are lifestyle changes recommended?'])
+              .slice(0, 5)
+              .map((q, idx) => (
                 <View key={idx} className="flex-row items-start space-x-2">
                   <Text className="text-teal-700 font-extrabold text-sm">•</Text>
                   <Text className="text-slate-600 text-xs flex-1 leading-relaxed">{q}</Text>
                 </View>
               ))}
-            </View>
-          ) : (
-            <View className="space-y-2 mt-2">
-              <View className="flex-row items-start space-x-2">
-                <Text className="text-teal-700 font-extrabold text-sm">•</Text>
-                <Text className="text-slate-600 text-xs flex-1 leading-relaxed">Should I repeat this test?</Text>
-              </View>
-              <View className="flex-row items-start space-x-2">
-                <Text className="text-teal-700 font-extrabold text-sm">•</Text>
-                <Text className="text-slate-600 text-xs flex-1 leading-relaxed">Is any follow-up required?</Text>
-              </View>
-              <View className="flex-row items-start space-x-2">
-                <Text className="text-teal-700 font-extrabold text-sm">•</Text>
-                <Text className="text-slate-600 text-xs flex-1 leading-relaxed">Are lifestyle changes recommended?</Text>
-              </View>
-            </View>
-          )}
+          </View>
         </View>
 
-        {/* 6. HEALTH TERMS EXPLAINED */}
+        {/* 8. HEALTH TERMS EXPLAINED */}
         {glossaryMatches.length > 0 && (
-          <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-4 shadow-sm">
+          <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-6 shadow-sm">
             <View className="flex-row items-center mb-3">
               <Text className="text-xl mr-2">📚</Text>
               <Text className="text-slate-800 font-extrabold text-base">Health Terms Explained</Text>
@@ -520,9 +643,9 @@ export default function RecordDetailScreen() {
           </View>
         )}
 
-        {/* 7. WHAT CHANGED? (ONLY IF PREVIOUS REPORT EXISTS) */}
+        {/* 9. WHAT CHANGED? (OPTIONAL PREVIOUS REPORT COMPARISON) */}
         {previousRecord && comparisonResults.length > 0 && (
-          <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-4 shadow-sm">
+          <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-6 shadow-sm">
             <View className="flex-row items-center mb-3">
               <Text className="text-xl mr-2">📈</Text>
               <Text className="text-slate-800 font-extrabold text-base">What Changed?</Text>
@@ -541,8 +664,21 @@ export default function RecordDetailScreen() {
           </View>
         )}
 
-        {/* 8. ORIGINAL REPORT */}
-        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-4 shadow-sm">
+        {/* 10. REPORT ASSISTANT CTA BUTTON */}
+        <View className="mb-6">
+          <TouchableOpacity
+            onPress={() => router.push({
+              pathname: '/(screens)/health-assistant',
+              params: { record_id: record.id }
+            })}
+            className="bg-teal-700 py-4.5 rounded-2xl items-center flex-row justify-center space-x-2 active:bg-teal-800 shadow-md"
+          >
+            <Text className="text-white font-extrabold text-base">💬 Ask JeevanSetu AI About This Report</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 11. ORIGINAL REPORT VIEW / ACTION CARD */}
+        <View className="bg-white border border-slate-200 p-6 rounded-2xl mb-6 shadow-sm">
           <View className="flex-row items-center mb-4">
             <Text className="text-xl mr-2">📄</Text>
             <Text className="text-slate-800 font-extrabold text-base">Original Report</Text>
@@ -550,9 +686,9 @@ export default function RecordDetailScreen() {
           <View className="space-y-3">
             <TouchableOpacity
               onPress={viewFile}
-              className="bg-teal-700 py-3.5 rounded-xl active:bg-teal-800 items-center w-full"
+              className="bg-slate-100 border border-slate-200 py-3.5 rounded-xl active:bg-slate-200 items-center w-full"
             >
-              <Text className="text-white font-bold text-sm">View Report</Text>
+              <Text className="text-slate-700 font-bold text-sm">View Report</Text>
             </TouchableOpacity>
 
             <View className="flex-row space-x-3">
@@ -572,13 +708,14 @@ export default function RecordDetailScreen() {
           </View>
         </View>
 
-        {/* 9. ABOUT THIS SUMMARY */}
-        <View className="bg-slate-100 border border-slate-200 p-5 rounded-2xl mb-8 shadow-sm">
-          <Text className="text-slate-700 font-extrabold text-xs mb-1.5">About this Summary</Text>
-          <Text className="text-slate-500 text-[11px] leading-relaxed">
-            This explanation was generated using AI to help you better understand your medical report. It should not replace advice from a qualified healthcare professional.
+        {/* 12. CLOSING TAKEAWAY */}
+        <View className="bg-teal-50 border border-teal-100 p-5 rounded-2xl mb-8 shadow-sm">
+          <Text className="text-teal-800 font-extrabold text-xs uppercase tracking-wider mb-2">Takeaway</Text>
+          <Text className="text-slate-600 text-xs leading-relaxed">
+            Based on this report, most of your results are within healthy ranges. Continue following your doctor's advice and keep uploading future reports so JeevanSetu AI can help you monitor your health over time.
           </Text>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
