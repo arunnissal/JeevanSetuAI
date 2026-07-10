@@ -29,9 +29,13 @@ interface Message {
 }
 
 export default function HealthAssistantScreen() {
+  console.log("HealthAssistant mounted");
+
   const router = useRouter();
   const params = useLocalSearchParams();
   const recordId = params.record_id as string | undefined;
+
+  console.log("useRouter and useLocalSearchParams success");
 
   const { user } = useAuthStore();
   const firstName = user?.fullName ? user.fullName.split(' ')[0] : 'there';
@@ -257,7 +261,7 @@ export default function HealthAssistantScreen() {
           ) : messages.length === 0 ? (
             /* 3. WELCOME CARD (GLOBAL ONLY) OR CHAT INTRO */
             !recordId ? (
-              <View className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm my-6">
+              <View className="bg-white border border-slate-200 p-6 rounded-2xl my-6">
                 <Text className="text-slate-800 font-extrabold text-base mb-2">
                   Hello {firstName} 👋
                 </Text>
@@ -276,7 +280,7 @@ export default function HealthAssistantScreen() {
                 </Text>
               </View>
             ) : (
-              <View className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm items-center my-6">
+              <View className="bg-white border border-slate-200 p-6 rounded-2xl items-center my-6">
                 <Text className="text-4xl mb-3">💬</Text>
                 <Text className="text-slate-800 font-extrabold text-base text-center mb-2">
                   Hello! I'm your Report Assistant.
@@ -295,7 +299,14 @@ export default function HealthAssistantScreen() {
                 const contextText = recordId ? "Based on your selected report" : "Based on your Health Journey";
 
                 return (
-                  <View key={index} className={`flex-row ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
+                  <View
+                    key={index}
+                    className={
+                      isUser
+                        ? 'flex-row justify-end mb-3'
+                        : 'flex-row justify-start mb-3'
+                    }
+                  >
                     <View className="max-w-[85%]">
                       {showContextHelper && (
                         <Text className="text-[10px] text-slate-400 font-semibold mb-1 pl-1">
@@ -305,11 +316,11 @@ export default function HealthAssistantScreen() {
                       <TouchableOpacity
                         onLongPress={() => handleCopy(msg.content)}
                         activeOpacity={0.8}
-                        className={`p-4 rounded-2xl shadow-sm border ${
+                        className={
                           isUser
-                            ? 'bg-teal-50 border-teal-100 rounded-tr-none'
-                            : 'bg-white border-slate-200 rounded-tl-none'
-                        }`}
+                            ? 'p-4 rounded-2xl border bg-teal-50 border-teal-100 rounded-tr-none'
+                            : 'p-4 rounded-2xl border bg-white border-slate-200 rounded-tl-none'
+                        }
                       >
                         {renderMessageContent(msg.content)}
                         <View className="flex-row justify-end space-x-2.5 mt-2 border-t border-slate-50 pt-1.5">
@@ -341,7 +352,7 @@ export default function HealthAssistantScreen() {
                   <TouchableOpacity
                     key={idx}
                     onPress={() => handleSend(chip)}
-                    className="bg-white border border-slate-200 px-3.5 py-2.5 rounded-full mr-2 mb-2 shadow-sm active:bg-slate-50"
+                    className="bg-white border border-slate-200 px-3.5 py-2.5 rounded-full mr-2 mb-2 active:bg-slate-50"
                   >
                     <Text className="text-slate-700 font-bold text-xs">💬 {chip}</Text>
                   </TouchableOpacity>
@@ -353,7 +364,7 @@ export default function HealthAssistantScreen() {
           {/* 6. ANIMATED TYPING INDICATOR */}
           {sending && (
             <View className="flex-row justify-start mt-4">
-              <View className="bg-slate-100 border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[85%]">
+              <View className="bg-slate-100 border border-slate-200 p-3 rounded-2xl rounded-tl-none max-w-[85%]">
                 <Text className="text-slate-500 text-xs font-semibold">
                   JeevanSetu AI is thinking...
                 </Text>
@@ -387,11 +398,13 @@ export default function HealthAssistantScreen() {
           <TouchableOpacity
             onPress={() => handleSend(inputText)}
             disabled={!inputText.trim() || sending}
-            className={`px-4 py-3 rounded-xl items-center justify-center ${
-              inputText.trim() && !sending ? 'bg-teal-700 active:bg-teal-800' : 'bg-slate-100'
-            }`}
+            className={
+              inputText.trim() && !sending
+                ? 'px-4 py-3 rounded-xl items-center justify-center bg-teal-700 active:bg-teal-800'
+                : 'px-4 py-3 rounded-xl items-center justify-center bg-slate-100'
+            }
           >
-            <Text className={`font-bold text-sm ${inputText.trim() && !sending ? 'text-white' : 'text-slate-400'}`}>
+            <Text className={inputText.trim() && !sending ? 'font-bold text-sm text-white' : 'font-bold text-sm text-slate-400'}>
               Send
             </Text>
           </TouchableOpacity>
