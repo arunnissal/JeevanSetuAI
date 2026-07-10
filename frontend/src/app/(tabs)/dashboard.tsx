@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getDashboardData } from '../../api/dashboard';
 import { getVaultRecords } from '../../api/vault';
@@ -59,9 +59,11 @@ export default function DashboardScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboard(false);
+    }, [])
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -271,7 +273,7 @@ export default function DashboardScreen() {
             Ask questions about your health journey, understand reports, and learn about wellness in simple language.
           </Text>
           <TouchableOpacity
-            onPress={() => router.push('/(screens)/health-assistant')}
+            onPress={() => router.push('/health-assistant')}
             className="bg-teal-700 py-3.5 rounded-xl items-center flex-row justify-center space-x-2 active:bg-teal-800"
           >
             <Text className="text-white font-bold text-sm">Start Conversation →</Text>
@@ -370,7 +372,7 @@ export default function DashboardScreen() {
 
       {/* Floating Action Button (FAB) */}
       <TouchableOpacity
-        onPress={() => router.push('/(screens)/health-assistant')}
+        onPress={() => router.push('/health-assistant')}
         className="absolute bottom-6 right-6 bg-teal-700 w-14 h-14 rounded-full items-center justify-center shadow-lg active:bg-teal-800 z-50"
       >
         <Text className="text-2xl text-white">💬</Text>

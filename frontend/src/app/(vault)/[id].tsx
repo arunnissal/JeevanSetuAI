@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Linking, Share } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Linking, Share, Platform, Clipboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getRecordDetail, getVaultRecords } from '../../api/vault';
@@ -189,58 +189,107 @@ export default function RecordDetailScreen() {
       }
     }
 
-    let status: 'normal' | 'attention' | 'info' = 'normal';
-    if (statusText.includes('normal') || statusText.includes('healthy') || statusText.includes('optimal') || statusText.includes('good')) {
-      status = 'normal';
-    } else if (statusText.includes('low') || statusText.includes('high') || statusText.includes('abnormal') || statusText.includes('concern') || statusText.includes('attention')) {
-      status = 'attention';
-    } else if (statusText.includes('info') || statusText.includes('positive') || statusText.includes('negative')) {
-      status = 'info';
-    } else {
-      const checkText = `${name} ${remaining}`.toLowerCase();
-      if (checkText.includes('low') || checkText.includes('high') || checkText.includes('abnormal') || checkText.includes('attention') || checkText.includes('decreased') || checkText.includes('increased')) {
-        status = 'attention';
-      } else if (checkText.includes('positive') || checkText.includes('negative') || checkText.includes('blood group')) {
-        status = 'info';
-      }
-    }
-
+    // Default medical dictionary parameters
     const key = name.toLowerCase();
     let defaultRange = 'Not specified';
     let defaultWhy = 'This parameter helps evaluate general health and organ function.';
-    let defaultWorry = status === 'normal' ? 'Your result is perfect, indicating good oxygenation and no anemia.' : 'Slightly low hemoglobin is common and can be caused by iron deficiency or dietary factors. It is highly manageable.';
-    let defaultDiscussion = status === 'normal' ? 'Ask how to maintain healthy iron levels through diet.' : 'Ask if an iron profile test or vitamin supplements are appropriate.';
+    let defaultWorry = 'Your result is close to the expected reference range. No need to panic; discuss with your doctor during your next visit.';
+    let defaultDiscussion = 'Ask your doctor if any follow-up tests or lifestyle adjustments are recommended.';
 
     if (key.includes('hemoglobin') || key.includes('hb')) {
-      defaultRange = '12.0 - 16.0 g/dL (Female), 13.5 - 17.5 g/dL (Male)';
+      defaultRange = '13.5 - 17.5 g/dL';
       defaultWhy = 'Hemoglobin is the oxygen-carrying protein in red blood cells. It ensures all your tissues receive sufficient oxygen.';
-      defaultWorry = status === 'normal' ? 'Your level is perfect, indicating good oxygenation and no anemia.' : 'Slightly low hemoglobin is common and can be caused by iron deficiency or dietary factors. It is highly manageable.';
-      defaultDiscussion = status === 'normal' ? 'Ask how to maintain healthy iron levels through diet.' : 'Ask if an iron profile test or vitamin supplements are appropriate.';
+      defaultWorry = 'Slightly low hemoglobin is common and can be caused by iron deficiency or dietary factors. It is highly manageable.';
+      defaultDiscussion = 'Ask if an iron profile test or vitamin supplements are appropriate.';
     } else if (key.includes('vitamin d') || key.includes('vit d') || key.includes('calciferol')) {
       defaultRange = '30.0 - 100.0 ng/mL';
       defaultWhy = 'Vitamin D is vital for absorbing calcium, regulating bone health, and supporting your immune system.';
-      defaultWorry = status === 'normal' ? 'Your levels are excellent, indicating healthy bone and immune support.' : 'Vitamin D deficiency is very common worldwide. It is easily resolved with sun exposure, food sources, or simple oral supplements.';
-      defaultDiscussion = status === 'normal' ? 'Ask if you need to continue your current sun exposure or dietary routine.' : 'Ask about the recommended dosage for a Vitamin D3 supplement.';
+      defaultWorry = 'Vitamin D deficiency is very common worldwide. It is easily resolved with sun exposure, food sources, or simple oral supplements.';
+      defaultDiscussion = 'Ask about the recommended dosage for a Vitamin D3 supplement.';
     } else if (key.includes('glucose') || key.includes('sugar') || key.includes('diabetes') || key.includes('hba1c')) {
-      defaultRange = '70 - 100 mg/dL (Fasting), < 5.7% (HbA1c)';
+      defaultRange = '70 - 100 mg/dL';
       defaultWhy = 'Glucose is the primary energy source for your body. Monitoring it helps evaluate sugar metabolism and manage diabetes risks.';
-      defaultWorry = status === 'normal' ? 'Your glucose level is stable and within the healthy fasting range.' : 'Fluctuations in blood sugar can be influenced by recent meals, stress, or activity. Your doctor can help evaluate if lifestyle changes are needed.';
-      defaultDiscussion = status === 'normal' ? 'Ask how to maintain insulin sensitivity.' : 'Ask if a fasting glucose or HbA1c test should be repeated, and discuss healthy dietary habits.';
+      defaultWorry = 'Fluctuations in blood sugar can be influenced by recent meals, stress, or activity. Your doctor can help evaluate if lifestyle changes are needed.';
+      defaultDiscussion = 'Ask if a fasting glucose or HbA1c test should be repeated, and discuss healthy dietary habits.';
     } else if (key.includes('cholesterol') || key.includes('lipid') || key.includes('ldl') || key.includes('hdl') || key.includes('triglyceride')) {
-      defaultRange = 'Total < 200 mg/dL, LDL < 100 mg/dL, HDL > 40 mg/dL';
+      defaultRange = 'Total < 200 mg/dL, LDL < 100 mg/dL';
       defaultWhy = 'Cholesterol is a lipid used to build cell walls. Balanced levels are crucial for cardiovascular and heart health.';
-      defaultWorry = status === 'normal' ? 'Your lipid profile is healthy, indicating low risk of plaque build-up.' : 'Slightly elevated levels are very common and can often be managed effectively through exercise, dietary adjustments, and healthy fats.';
-      defaultDiscussion = status === 'normal' ? 'Ask how to maintain a heart-healthy diet.' : 'Ask if lifestyle modifications (diet/exercise) are sufficient before considering medical options.';
+      defaultWorry = 'Slightly elevated levels are very common and can often be managed effectively through exercise, dietary adjustments, and healthy fats.';
+      defaultDiscussion = 'Ask if lifestyle modifications (diet/exercise) are sufficient before considering medical options.';
     } else if (key.includes('creatinine') || key.includes('kidney') || key.includes('egfr') || key.includes('urea')) {
       defaultRange = '0.6 - 1.2 mg/dL';
       defaultWhy = 'Creatinine is a waste product filtered by the kidneys. It measures how effectively your kidneys filter waste from blood.';
-      defaultWorry = status === 'normal' ? 'Your kidneys are filtering waste perfectly and functioning healthy.' : 'Slightly elevated creatinine can be caused by simple dehydration, intense exercise, or certain medications. Drinking water often helps.';
-      defaultDiscussion = status === 'normal' ? 'Ask how hydration affects kidney values.' : 'Ask if you should repeat the test after drinking plenty of water, and review your current medications.';
+      defaultWorry = 'Slightly elevated creatinine can be caused by simple dehydration, intense exercise, or certain medications. Drinking water often helps.';
+      defaultDiscussion = 'Ask if you should repeat the test after drinking plenty of water, and review your current medications.';
     } else if (key.includes('thyroid') || key.includes('tsh') || key.includes('t3') || key.includes('t4')) {
       defaultRange = '0.4 - 4.5 uIU/mL';
       defaultWhy = 'TSH stimulates the thyroid gland to release metabolism hormones. It regulates energy use and cellular function.';
-      defaultWorry = status === 'normal' ? 'Your thyroid activity is perfectly balanced, showing stable metabolism control.' : 'Minor thyroid fluctuations are extremely common and treatable. Your doctor will assess if actual hormone levels (T3/T4) are normal.';
-      defaultDiscussion = status === 'normal' ? 'Ask how often thyroid levels should be screened.' : 'Ask if a full thyroid panel (Free T3/T4) is recommended to get a complete picture.';
+      defaultWorry = 'Minor thyroid fluctuations are extremely common and treatable. Your doctor will assess if actual hormone levels (T3/T4) are normal.';
+      defaultDiscussion = 'Ask if a full thyroid panel (Free T3/T4) is recommended to get a complete picture.';
+    }
+
+    // Determine status enum
+    let status: 'normal' | 'attention' | 'info' = 'normal';
+    let valueChecked = false;
+
+    // 1. Check numeric values if reference range exists
+    if (value && defaultRange !== 'Not specified') {
+      const valNum = parseFloat(value.replace(/[^\d.]/g, ''));
+      const rangeNums = defaultRange.match(/(\d+(?:\.\d+)?)/g);
+      if (!isNaN(valNum) && rangeNums && rangeNums.length >= 2) {
+        const min = parseFloat(rangeNums[0]);
+        const max = parseFloat(rangeNums[1]);
+        if (valNum < min || valNum > max) {
+          status = 'attention';
+          valueChecked = true;
+        } else {
+          status = 'normal';
+          valueChecked = true;
+        }
+      }
+    }
+
+    // 2. Explicit AI status check if numeric values didn't classify
+    if (!valueChecked) {
+      if (statusText) {
+        const text = statusText.toLowerCase();
+        if (text.includes('normal') || text.includes('healthy') || text.includes('optimal') || text.includes('good')) {
+          status = 'normal';
+        } else if (text.includes('low') || text.includes('high') || text.includes('abnormal') || text.includes('concern') || text.includes('attention') || text.includes('deficien')) {
+          status = 'attention';
+        } else if (text.includes('info') || text.includes('positive') || text.includes('negative')) {
+          status = 'info';
+        }
+      } else {
+        // 3. Fallback keywords check
+        const checkText = `${name} ${remaining}`.toLowerCase();
+        const hasWarning = 
+          checkText.includes('deficien') ||
+          checkText.includes('insufficien') ||
+          checkText.includes('abnormal') ||
+          checkText.includes('attention') ||
+          checkText.includes('concern') ||
+          checkText.includes('low') ||
+          checkText.includes('high') ||
+          checkText.includes('decreased') ||
+          checkText.includes('increased') ||
+          checkText.includes('elevated') ||
+          checkText.includes('borderline') ||
+          checkText.includes('alert') ||
+          checkText.includes('warning');
+        
+        if (hasWarning) {
+          status = 'attention';
+        } else if (checkText.includes('positive') || checkText.includes('negative') || checkText.includes('blood group')) {
+          status = 'info';
+        }
+      }
+    }
+
+    // Custom status descriptions override for reassurance
+    if (status === 'normal') {
+      defaultWorry = 'Your level is perfect and within the expected reference range.';
+      defaultDiscussion = 'Ask how to maintain this healthy level through diet and lifestyle.';
     }
 
     return {
@@ -271,24 +320,39 @@ export default function RecordDetailScreen() {
   const overallHealthSummaryParagraph = useMemo(() => {
     if (parsedFindings.length === 0) return 'Your medical report has been analyzed. The details are presented below.';
     
-    const normalNames = healthyFindings.slice(0, 3).map(f => f.name).join(', ');
+    const healthyNames = healthyFindings.slice(0, 3).map(f => f.name).join(', ');
     const attentionNames = attentionFindings.map(f => f.name).join(', ');
 
-    let start = "Your health report shows an overall stable and reassuring condition.";
-    let healthyPart = healthyFindings.length > 0 
-      ? `We are pleased to see that several key markers, such as ${normalNames}, are completely healthy and within their normal ranges.`
-      : "Most of your primary markers are stable and showing good health parameters.";
-    
-    let attentionPart = attentionFindings.length > 0
-      ? `There are ${attentionFindings.length} items that could benefit from slight attention, specifically your ${attentionNames} levels.`
-      : "There are no major items needing immediate medical attention in this report.";
-    
-    let lifestylePart = "These findings are very common and can often be optimized with simple, healthy adjustments to your daily routine.";
-    let reassurance = "Please consult your healthcare professional to discuss these results and personalize any next steps.";
-    let conclusion = "Overall, this report is a positive step in proactively monitoring and maintaining your long-term wellness.";
+    const sentences: string[] = [];
 
-    const sentences = [start, healthyPart, attentionPart, lifestylePart, reassurance, conclusion];
-    return sentences.slice(0, 6).join(' ');
+    // 1. Overall condition
+    if (attentionFindings.length === 0) {
+      sentences.push("Your medical report indicates an excellent and fully healthy overall condition.");
+    } else {
+      sentences.push("Your medical report shows an overall stable condition with a few specific values to note.");
+    }
+
+    // 2. Healthy findings
+    if (healthyFindings.length > 0) {
+      sentences.push(`Several key parameters, including ${healthyNames}, are completely healthy and within normal ranges.`);
+    }
+
+    // 3. Findings needing attention (deficiencies are clearly called out here, not categorized as healthy)
+    if (attentionFindings.length > 0) {
+      sentences.push(`However, we noted that your ${attentionNames} ${attentionFindings.length === 1 ? 'level is' : 'levels are'} currently outside the recommended reference range.`);
+    }
+
+    // 4. Reassurance
+    if (attentionFindings.length > 0) {
+      sentences.push("This is very common and can typically be addressed with simple lifestyle adjustments or dietary updates.");
+    } else {
+      sentences.push("All of your analyzed biomarkers match reference standards perfectly.");
+    }
+
+    // 5. Recommended next step
+    sentences.push("We recommend sharing these results with your primary care physician to discuss personalized wellness maintenance.");
+
+    return sentences.join(' ');
   }, [parsedFindings, healthyFindings, attentionFindings]);
 
   const glossaryMatches = useMemo(() => {
@@ -367,19 +431,90 @@ export default function RecordDetailScreen() {
     }
   };
 
+  const downloadFile = () => {
+    if (record?.file?.file_url) {
+      if (Platform.OS === 'web') {
+        const link = document.createElement('a');
+        link.href = record.file.file_url;
+        link.download = record.metadata.original_filename || 'report.pdf';
+        link.click();
+      } else {
+        Linking.openURL(record.file.file_url).catch(() => {
+          Alert.alert('Error', 'Cannot download document');
+        });
+      }
+    }
+  };
+
   const shareRecord = async () => {
     if (!record?.file?.file_url) return;
     try {
-      await Share.share({
-        message: `My Medical Report summary for: ${
-          record.metadata.original_filename || 'medical_report.pdf'
-        }\nView here: ${record.file.file_url}`,
-        title: record.metadata.original_filename || 'Medical Report'
-      });
+      if (Platform.OS === 'web') {
+        Clipboard.setString(record.file.file_url);
+        Alert.alert('Link Copied', 'Report link has been copied to clipboard.');
+      } else {
+        await Share.share({
+          message: `Medical Report: ${
+            record.metadata.original_filename || 'medical_report.pdf'
+          }\nView: ${record.file.file_url}`,
+          title: record.metadata.original_filename || 'Medical Report'
+        });
+      }
     } catch (e) {
       Alert.alert('Error', 'Failed to share report.');
     }
   };
+
+  // What This Means fallback explanation
+  const whatThisMeansText = useMemo(() => {
+    const summary = record?.analysis?.ai_summary;
+    if (summary && summary.trim().toLowerCase() !== 'no summary available' && summary.trim().toLowerCase() !== 'none') {
+      return summary;
+    }
+    
+    if (parsedFindings.length > 0) {
+      const normalNames = healthyFindings.slice(0, 3).map(f => f.name).join(', ');
+      const attentionNames = attentionFindings.map(f => f.name).join(', ');
+      let text = `This medical report details your diagnostic parameters. We reviewed key indicators, including ${normalNames}. `;
+      if (attentionFindings.length > 0) {
+        text += `The main area requiring attention is your ${attentionNames} levels. `;
+      }
+      text += "Regularly tracking these values helps monitor your long-term health trends and supports proactive wellness.";
+      return text;
+    }
+    
+    return 'This report details your diagnostic health parameters. Regular tracking of these values lets you monitor trends over time and helps support healthy choices.';
+  }, [record, parsedFindings, healthyFindings, attentionFindings]);
+
+  // Questions for doctor list (max 5)
+  const doctorQuestionsList = useMemo(() => {
+    const qList = record?.analysis?.doctor_questions || [];
+    if (qList.length > 0) {
+      return qList.slice(0, 5);
+    }
+
+    const generated: string[] = [];
+    const hasVitD = attentionFindings.some(f => f.name.toLowerCase().includes('vitamin d') || f.name.toLowerCase().includes('vit d'));
+    const hasChol = attentionFindings.some(f => f.name.toLowerCase().includes('cholesterol') || f.name.toLowerCase().includes('lipid') || f.name.toLowerCase().includes('ldl'));
+    const hasHb = attentionFindings.some(f => f.name.toLowerCase().includes('hemoglobin') || f.name.toLowerCase().includes('hb'));
+
+    if (hasVitD) {
+      generated.push("Should I take a Vitamin D supplement, and if so, what dosage?");
+      generated.push("How much sunlight exposure is recommended for my Vitamin D levels?");
+    }
+    if (hasChol) {
+      generated.push("Do I need to start cholesterol-lowering medication or focus on diet first?");
+    }
+    if (hasHb) {
+      generated.push("Should we run an iron profile test to check for anemia?");
+    }
+
+    generated.push("Should I repeat this test in 3 to 6 months to monitor these levels?");
+    generated.push("Are there any specific lifestyle or dietary changes you recommend based on these results?");
+    generated.push("Do these findings indicate any underlying conditions I should be concerned about?");
+
+    return generated.slice(0, 5);
+  }, [record, attentionFindings]);
 
   if (loading) {
     return (
@@ -570,7 +705,7 @@ export default function RecordDetailScreen() {
             <Text className="text-slate-800 font-extrabold text-base">What This Means</Text>
           </View>
           <Text className="text-slate-600 text-sm leading-relaxed">
-            {record.analysis?.ai_summary || 'This report details your diagnostic health parameters. Regular tracking of these values lets you monitor trends over time and helps support healthy choices.'}
+            {whatThisMeansText}
           </Text>
         </View>
 
@@ -614,14 +749,12 @@ export default function RecordDetailScreen() {
             <Text className="text-slate-800 font-extrabold text-base">Questions for Your Doctor</Text>
           </View>
           <View className="space-y-3 mt-2">
-            {(record.analysis?.doctor_questions || ['Should I repeat this test?', 'Is any follow-up required?', 'Are lifestyle changes recommended?'])
-              .slice(0, 5)
-              .map((q, idx) => (
-                <View key={idx} className="flex-row items-start space-x-2">
-                  <Text className="text-teal-700 font-extrabold text-sm">•</Text>
-                  <Text className="text-slate-600 text-xs flex-1 leading-relaxed">{q}</Text>
-                </View>
-              ))}
+            {doctorQuestionsList.map((q, idx) => (
+              <View key={idx} className="flex-row items-start space-x-2">
+                <Text className="text-teal-700 font-extrabold text-sm">•</Text>
+                <Text className="text-slate-600 text-xs flex-1 leading-relaxed">{q}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
@@ -668,7 +801,7 @@ export default function RecordDetailScreen() {
         <View className="mb-6">
           <TouchableOpacity
             onPress={() => router.push({
-              pathname: '/(screens)/health-assistant',
+              pathname: '/health-assistant',
               params: { record_id: record.id }
             })}
             className="bg-teal-700 py-4.5 rounded-2xl items-center flex-row justify-center space-x-2 active:bg-teal-800 shadow-md"
@@ -699,7 +832,7 @@ export default function RecordDetailScreen() {
                 <Text className="text-slate-700 font-bold text-sm">Share</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={viewFile}
+                onPress={downloadFile}
                 className="flex-1 bg-slate-100 border border-slate-200 py-3.5 rounded-xl active:bg-slate-200 items-center"
               >
                 <Text className="text-slate-700 font-bold text-sm">Download</Text>
