@@ -50,6 +50,27 @@ class MockProvider(BaseAIProvider):
         elif self.mode == "empty":
             return ""
 
+        elif self.mode == "none":
+            return None
+
+        elif self.mode == "whitespace":
+            return "   \n  \t "
+
+        elif self.mode == "conversational_fenced":
+            return """Here is your report analysis prefix.
+            ```json
+            {
+                "summary": "Conversational summary",
+                "diagnoses": ["Vitamin Deficiency"],
+                "medicines": [],
+                "tests": [],
+                "recommendations": [],
+                "doctor_questions": [],
+                "confidence": "HIGH"
+            }
+            ```
+            Hope this helps!"""
+
         elif self.mode == "missing":
             # Missing confidence and disclaimer - should get default fallback values
             return """{
@@ -150,6 +171,37 @@ class AIGatewayTestCase(TestCase):
         
         self.assertEqual(result["summary"], "Succeeded after retry")
         self.assertEqual(provider.calls_count, 2)
+        self.assertEqual(AIRequestLog.objects.filter(status="success").count(), 1)
+
+    def test_none_response_raises_invalid_response_and_logs_safely(self):
+        provider = MockProvider("none")
+        gateway = AIGateway(provider)
+        
+        with self.assertRaises(AIInvalidResponse):
+            gateway.process_report_analysis("test_prompt", "ocr_text")
+            
+        # Verify it logged failed status without IntegrityError (raw_response non-null constraint)
+        failed_log = AIRequestLog.objects.filter(status="failed", status_code=204).first()
+        self.assertIsNotNone(failed_log)
+        self.assertEqual(failed_log.raw_response, "")
+
+    def test_whitespace_response_raises_invalid_response(self):
+        provider = MockProvider("whitespace")
+        gateway = AIGateway(provider)
+        
+        with self.assertRaises(AIInvalidResponse):
+            gateway.process_report_analysis("test_prompt", "ocr_text")
+            
+        self.assertEqual(AIRequestLog.objects.filter(status="failed", status_code=204).count(), 1)
+
+    def test_conversational_fenced_response_succeeds(self):
+        provider = MockProvider("conversational_fenced")
+        gateway = AIGateway(provider)
+        
+        result = gateway.process_report_analysis("test_prompt", "ocr_text")
+        self.assertEqual(result["summary"], "Conversational summary")
+        self.assertEqual(result["confidence"], "HIGH")
+        self.assertEqual(result["diagnoses"], ["Vitamin Deficiency"])
         self.assertEqual(AIRequestLog.objects.filter(status="success").count(), 1)
 
 from apps.intelligence.utils.json_validator import JSONValidator

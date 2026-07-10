@@ -39,7 +39,7 @@ class AIGateway:
             processing_time = time.time() - start_ts
 
             if not raw_response or not raw_response.strip():
-                raise AIInvalidResponse("AI provider returned an empty response.")
+                raise AIInvalidResponse("AI provider returned empty response content.")
 
             # Clean and validate the raw text
             cleaned = ResponseCleaner.clean(raw_response)
@@ -78,7 +78,7 @@ class AIGateway:
             AIRequestLog.objects.create(
                 user=user,
                 prompt=prompt,
-                raw_response=raw_response,
+                raw_response=raw_response or "",
                 status_code=status_code,
                 start_time=start_time,
                 end_time=end_time,

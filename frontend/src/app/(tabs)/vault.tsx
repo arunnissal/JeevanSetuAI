@@ -314,11 +314,11 @@ export default function VaultScreen() {
                   <TouchableOpacity
                     key={chip.id}
                     onPress={() => setSelectedChip(chip.id)}
-                    className={`px-4 py-2 rounded-xl mr-2 border ${
+                    className={
                       isSelected
-                        ? 'bg-teal-700 border-teal-700 shadow-sm'
-                        : 'bg-white border-slate-200 active:bg-slate-50'
-                    }`}
+                        ? 'px-4 py-2 rounded-xl mr-2 border bg-teal-700 border-teal-700'
+                        : 'px-4 py-2 rounded-xl mr-2 border bg-white border-slate-200 active:bg-slate-50'
+                    }
                   >
                     <Text
                       className={`text-xs font-bold ${
@@ -360,26 +360,28 @@ export default function VaultScreen() {
             </View>
           </View>
 
-          {/* Records List */}
-          <FlatList
-            data={processedRecords}
-            keyExtractor={(item) => item.id}
-            renderItem={renderCard}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={[colors.primary]}
-                tintColor={colors.primary}
-              />
-            }
-            ListEmptyComponent={
-              <View className="py-12 items-center">
-                <Text className="text-slate-400 text-sm">No matching records found.</Text>
-              </View>
-            }
-          />
+          {/* Records List or Empty State */}
+          {processedRecords.length === 0 ? (
+            <View className="flex-1 justify-center items-center py-12">
+              <Text className="text-slate-800 font-extrabold text-base mb-1">No reports found</Text>
+              <Text className="text-slate-400 text-xs">No reports match this filter.</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={processedRecords}
+              keyExtractor={(item) => item.id}
+              renderItem={renderCard}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  colors={[colors.primary]}
+                  tintColor={colors.primary}
+                />
+              }
+            />
+          )}
 
           {/* Large Floating Upload Button */}
           <TouchableOpacity

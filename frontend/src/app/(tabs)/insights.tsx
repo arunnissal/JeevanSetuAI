@@ -105,16 +105,16 @@ export default function InsightsScreen() {
   }
 
   // Empty State: If no medical records uploaded
-  if (data.journey.reports_count === 0) {
+  if (!data?.journey || data.journey.reports_count === 0) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center px-6">
-        <View className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm items-center w-full max-w-sm">
+        <View className="bg-white border border-slate-200 p-8 rounded-3xl items-center w-full max-w-sm">
           <Text className="text-5xl mb-4">📈</Text>
           <Text className="text-slate-800 font-extrabold text-lg text-center mb-2">
-            Your Health Story Will Appear Here
+            No reports uploaded yet.
           </Text>
           <Text className="text-slate-500 text-center text-sm leading-relaxed mb-6 px-2">
-            Upload medical reports to begin discovering trends across your health journey.
+            Upload your first report to unlock AI Insights.
           </Text>
           <TouchableOpacity
             onPress={() => router.push('/upload')}
@@ -157,25 +157,25 @@ export default function InsightsScreen() {
             <View className="w-1/2 pr-2 pb-4">
               <Text className="text-slate-400 text-[10px] font-medium uppercase">Medical Reports</Text>
               <Text className="text-slate-800 font-extrabold text-2xl mt-1">
-                {data.journey.reports_count}
+                {data.journey?.reports_count ?? 0}
               </Text>
             </View>
             <View className="w-1/2 pl-2 pb-4">
               <Text className="text-slate-400 text-[10px] font-medium uppercase">AI Summaries</Text>
               <Text className="text-slate-800 font-extrabold text-2xl mt-1">
-                {data.journey.ai_summaries}
+                {data.journey?.ai_summaries ?? 0}
               </Text>
             </View>
             <View className="w-1/2 pr-2">
               <Text className="text-slate-400 text-[10px] font-medium uppercase">Timeline Events</Text>
               <Text className="text-slate-800 font-extrabold text-2xl mt-1">
-                {data.journey.timeline_events}
+                {data.journey?.timeline_events ?? 0}
               </Text>
             </View>
             <View className="w-1/2 pl-2">
               <Text className="text-slate-400 text-[10px] font-medium uppercase">Journey Started</Text>
               <Text className="text-slate-800 font-extrabold text-base mt-2">
-                {data.journey.journey_started}
+                {data.journey?.journey_started ?? 'Not started yet'}
               </Text>
             </View>
           </View>
