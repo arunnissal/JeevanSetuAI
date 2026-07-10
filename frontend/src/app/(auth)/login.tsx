@@ -95,7 +95,7 @@ export default function LoginScreen() {
       </View>
 
       <View className="items-center">
-        <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+        <TouchableOpacity onPress={() => router.push('/register')}>
           <Text className="text-teal-700 font-medium text-base">
             {t.login.noAccount}
           </Text>

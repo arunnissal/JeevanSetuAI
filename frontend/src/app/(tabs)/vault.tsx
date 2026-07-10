@@ -153,7 +153,7 @@ export default function VaultScreen() {
 
     return (
       <TouchableOpacity
-        onPress={() => router.push(`/(vault)/${item.id}`)}
+        onPress={() => router.push(`/${item.id}`)}
         className="bg-white border border-slate-200 p-5 rounded-2xl mb-4 active:bg-slate-50 shadow-sm"
       >
         {/* Top line: Category Badge + Status Badge */}
@@ -195,7 +195,7 @@ export default function VaultScreen() {
               We couldn't understand this report. Please upload a clearer image or PDF.
             </Text>
             <TouchableOpacity
-              onPress={() => router.push('/(vault)/upload')}
+              onPress={() => router.push('/upload')}
               className="bg-red-600 py-2.5 rounded-lg active:bg-red-700 items-center"
             >
               <Text className="text-white font-bold text-xs">Upload Again</Text>
@@ -275,7 +275,7 @@ export default function VaultScreen() {
               Securely store blood tests, prescriptions, scans, discharge summaries and other medical records in one place.
             </Text>
             <TouchableOpacity
-              onPress={() => router.push('/(vault)/upload')}
+              onPress={() => router.push('/upload')}
               className="bg-teal-700 w-full py-4 rounded-xl active:bg-teal-800 items-center"
             >
               <Text className="text-white font-bold text-sm">Upload Your First Report</Text>
@@ -383,7 +383,7 @@ export default function VaultScreen() {
 
           {/* Large Floating Upload Button */}
           <TouchableOpacity
-            onPress={() => router.push('/(vault)/upload')}
+            onPress={() => router.push('/upload')}
             className="absolute bottom-6 right-0 bg-teal-700 h-14 px-6 rounded-full flex-row items-center justify-center shadow-lg active:bg-teal-800"
           >
             <Text className="text-white font-extrabold text-base mr-2">+</Text>

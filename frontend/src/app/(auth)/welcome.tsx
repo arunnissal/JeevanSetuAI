@@ -24,14 +24,14 @@ export default function WelcomeScreen() {
 
       <View className="w-full space-y-4 mb-8">
         <TouchableOpacity
-          onPress={() => router.push('/(auth)/register')}
+          onPress={() => router.push('/register')}
           className="w-full bg-teal-700 py-4 rounded-2xl items-center shadow-md active:bg-teal-800"
         >
           <Text className="text-white text-lg font-semibold">{t.welcome.getStarted}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => router.push('/(auth)/login')}
+          onPress={() => router.push('/login')}
           className="w-full border border-slate-200 bg-white py-4 rounded-2xl items-center mt-4 active:bg-slate-50"
         >
           <Text className="text-teal-700 text-lg font-semibold">{t.welcome.alreadyHaveAccount}</Text>

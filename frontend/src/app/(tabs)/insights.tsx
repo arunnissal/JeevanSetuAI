@@ -117,7 +117,7 @@ export default function InsightsScreen() {
             Upload medical reports to begin discovering trends across your health journey.
           </Text>
           <TouchableOpacity
-            onPress={() => router.push('/(vault)/upload')}
+            onPress={() => router.push('/upload')}
             className="bg-teal-700 w-full py-3.5 rounded-xl active:bg-teal-800 items-center"
           >
             <Text className="text-white font-bold text-sm">Upload Medical Report</Text>

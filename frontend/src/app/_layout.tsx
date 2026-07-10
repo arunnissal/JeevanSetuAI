@@ -24,7 +24,7 @@ function useProtectedRoute() {
 
     if (!isAuthenticated) {
       if (!inAuthGroup) {
-        router.replace('/(auth)/welcome');
+        router.replace('/welcome');
       }
     } else if (user && user.profileProgress < 100) {
       if (!inOnboardingGroup) {
@@ -33,7 +33,7 @@ function useProtectedRoute() {
     } else {
       const segs = segments as string[];
       if (inAuthGroup || inOnboardingGroup || segs.length === 0 || segs[0] === 'index') {
-        router.replace('/(tabs)/dashboard');
+        router.replace('/dashboard');
       }
     }
   }, [isAuthenticated, user?.profileProgress, segments]);
@@ -45,13 +45,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="(vault)" />
-        <Stack.Screen name="(screens)" />
-      </Stack>
+      <Stack screenOptions={{ headerShown: false }} />
     </ThemeProvider>
   );
 }

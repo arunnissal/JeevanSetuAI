@@ -70,7 +70,7 @@ export default function TimelineScreen() {
           title: 'Medical Report Added',
           description: 'Your report has been securely added to your Medical Vault.',
           actionText: 'Open Report Details',
-          route: (recordId?: string) => `/(vault)/${recordId}`
+          route: (recordId?: string) => `/${recordId}`
         };
       case 'AI':
         return {
@@ -78,7 +78,7 @@ export default function TimelineScreen() {
           title: 'Easy Explanation Ready',
           description: 'Your report has been analyzed and translated into easy-to-understand language.',
           actionText: 'Open Report Details',
-          route: (recordId?: string) => `/(vault)/${recordId}`
+          route: (recordId?: string) => `/${recordId}`
         };
       case 'PROFILE':
         return {
@@ -354,7 +354,7 @@ export default function TimelineScreen() {
               Every report you upload will become part of your personal health timeline.
             </Text>
             <TouchableOpacity
-              onPress={() => router.push('/(vault)/upload')}
+              onPress={() => router.push('/upload')}
               className="bg-teal-700 w-full py-4 rounded-xl active:bg-teal-800 items-center"
             >
               <Text className="text-white font-bold text-sm">Upload Your First Report</Text>

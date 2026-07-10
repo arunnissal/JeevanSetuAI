@@ -127,7 +127,7 @@ export default function RegisterScreen() {
       </ScrollView>
 
       <View className="items-center mt-6">
-        <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+        <TouchableOpacity onPress={() => router.push('/login')}>
           <Text className="text-teal-700 font-medium text-base">
             {t.register.alreadyHaveAccount}
           </Text>

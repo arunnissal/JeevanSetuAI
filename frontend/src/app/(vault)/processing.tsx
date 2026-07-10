@@ -131,7 +131,7 @@ export default function ProcessingScreen() {
 
     // Automatically navigate to Report Details after 1.8 seconds if user does nothing
     autoRedirectTimerRef.current = setTimeout(() => {
-      router.replace(`/(vault)/${recordId}`);
+      router.replace(`/${recordId}`);
     }, 1800);
   };
 
@@ -170,7 +170,7 @@ export default function ProcessingScreen() {
           <TouchableOpacity
             onPress={() => {
               if (autoRedirectTimerRef.current) clearTimeout(autoRedirectTimerRef.current);
-              router.replace(`/(vault)/${recordId}`);
+              router.replace(`/${recordId}`);
             }}
             className="bg-teal-700 w-full py-4 rounded-xl active:bg-teal-800 items-center mb-3"
           >
@@ -180,7 +180,7 @@ export default function ProcessingScreen() {
           <TouchableOpacity
             onPress={() => {
               if (autoRedirectTimerRef.current) clearTimeout(autoRedirectTimerRef.current);
-              router.replace('/(tabs)/vault');
+              router.replace('/vault');
             }}
             className="bg-slate-100 border border-slate-200 w-full py-4 rounded-xl active:bg-slate-200 items-center"
           >
@@ -205,7 +205,7 @@ export default function ProcessingScreen() {
           </Text>
 
           <TouchableOpacity
-            onPress={() => router.replace('/(vault)/upload')}
+            onPress={() => router.replace('/upload')}
             className="bg-teal-700 w-full py-4 rounded-xl active:bg-teal-800 items-center mb-3"
           >
             <Text className="text-white font-bold text-sm">Upload Another Report</Text>

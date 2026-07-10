@@ -286,7 +286,7 @@ export default function DashboardScreen() {
           <View className="flex-row flex-wrap -mx-1.5">
             <View className="w-1/2 px-1.5 mb-3">
               <TouchableOpacity
-                onPress={() => router.push('/(vault)/upload')}
+                onPress={() => router.push('/upload')}
                 className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm active:bg-slate-50 items-center"
               >
                 <Text className="text-xl mb-1.5">📤</Text>
@@ -295,7 +295,7 @@ export default function DashboardScreen() {
             </View>
             <View className="w-1/2 px-1.5 mb-3">
               <TouchableOpacity
-                onPress={() => router.push('/(tabs)/vault')}
+                onPress={() => router.push('/vault')}
                 className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm active:bg-slate-50 items-center"
               >
                 <Text className="text-xl mb-1.5">🗂️</Text>
@@ -304,7 +304,7 @@ export default function DashboardScreen() {
             </View>
             <View className="w-1/2 px-1.5 mb-3">
               <TouchableOpacity
-                onPress={() => router.push('/(tabs)/timeline')}
+                onPress={() => router.push('/timeline')}
                 className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm active:bg-slate-50 items-center"
               >
                 <Text className="text-xl mb-1.5">📈</Text>
@@ -313,7 +313,7 @@ export default function DashboardScreen() {
             </View>
             <View className="w-1/2 px-1.5 mb-3">
               <TouchableOpacity
-                onPress={() => router.push('/(tabs)/profile')}
+                onPress={() => router.push('/profile')}
                 className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm active:bg-slate-50 items-center"
               >
                 <Text className="text-xl mb-1.5">👤</Text>
@@ -336,7 +336,7 @@ export default function DashboardScreen() {
                 Upload your first report to begin your health journey.
               </Text>
               <TouchableOpacity
-                onPress={() => router.push('/(vault)/upload')}
+                onPress={() => router.push('/upload')}
                 className="bg-teal-700 px-6 py-2.5 rounded-xl active:bg-teal-800"
               >
                 <Text className="text-white font-bold text-xs">Upload Report</Text>
@@ -347,7 +347,7 @@ export default function DashboardScreen() {
               {latestThree.map((item) => (
                 <TouchableOpacity
                   key={item.id}
-                  onPress={() => router.push(`/(vault)/${item.id}`)}
+                  onPress={() => router.push(`/${item.id}`)}
                   className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex-row items-center justify-between active:bg-slate-50"
                 >
                   <View className="flex-1 mr-3">
