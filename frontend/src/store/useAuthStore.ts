@@ -2,6 +2,28 @@ import { create } from 'zustand';
 import apiClient from '../api/axios';
 import { User } from '../types';
 
+const mapUser = (rawUser: any): User | null => {
+  if (!rawUser) return null;
+  return {
+    id: rawUser.id,
+    email: rawUser.email,
+    fullName: rawUser.full_name || '',
+    dob: rawUser.dob || '',
+    profileProgress: rawUser.profile_progress ?? 0,
+    language: rawUser.language || 'en',
+    health_profile: rawUser.health_profile ? {
+      blood_group: rawUser.health_profile.blood_group || '',
+      allergies: rawUser.health_profile.allergies || '',
+      medical_conditions: rawUser.health_profile.medical_conditions || '',
+      ai_personalization: rawUser.health_profile.ai_personalization || '',
+    } : undefined,
+    emergency_profile: rawUser.emergency_profile ? {
+      emergency_contact_name: rawUser.emergency_profile.emergency_contact_name || '',
+      emergency_contact_phone: rawUser.emergency_profile.emergency_contact_phone || '',
+    } : undefined,
+  };
+};
+
 interface AuthState {
   token: string | null;
   refreshToken: string | null;
@@ -27,10 +49,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setAuth: (token, refreshToken, user) => {
     // Set token in Axios Authorization header
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    set({ token, refreshToken, user, isAuthenticated: true });
+    set({ token, refreshToken, user: mapUser(user), isAuthenticated: true });
   },
   
-  updateUser: (user) => set({ user }),
+  updateUser: (user) => set({ user: mapUser(user) }),
   
   logout: async () => {
     const { refreshToken } = get();

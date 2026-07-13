@@ -5,10 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
   Clipboard,
   ActivityIndicator,
+  useWindowDimensions,
+  Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -47,6 +48,46 @@ export default function HealthAssistantScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const [normalHeight, setNormalHeight] = useState(windowHeight);
+
+  useEffect(() => {
+    if (!isKeyboardVisible) {
+      setNormalHeight(windowHeight);
+    }
+  }, [windowHeight, isKeyboardVisible]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'android' ? 'keyboardDidShow' : 'keyboardWillShow';
+    const hideEvent = Platform.OS === 'android' ? 'keyboardDidHide' : 'keyboardWillHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (e) => {
+      setIsKeyboardVisible(true);
+      const hasResized = windowHeight < normalHeight - 100;
+      const measuredHeight = e.endCoordinates.height;
+      if (!hasResized) {
+        setKeyboardHeight(measuredHeight);
+      } else {
+        setKeyboardHeight(0);
+      }
+      console.log(`[Diagnostic] showEvent - windowHeight: ${windowHeight}, normalHeight: ${normalHeight}, measuredHeight: ${measuredHeight}, hasResized: ${hasResized}`);
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 50);
+    });
+
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+      console.log(`[Diagnostic] hideEvent - resetting keyboardHeight to 0`);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [windowHeight, normalHeight]);
 
   // Dynamic Header Title & Subtitle
   const headerTitle = recordId ? '🩺 Report Assistant' : '🤖 JeevanSetu AI';
@@ -213,33 +254,28 @@ export default function HealthAssistantScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      
-      {/* 1. DYNAMIC HEADER */}
-      <View className="flex-row items-center justify-between border-b border-slate-100 px-6 py-4">
-        <View className="flex-row items-center space-x-3">
-          <TouchableOpacity onPress={() => router.back()} className="py-2">
-            <Text className="text-teal-700 text-base font-extrabold mr-1">⇠</Text>
-          </TouchableOpacity>
-          <View>
-            <Text className="text-lg font-extrabold text-slate-900">{headerTitle}</Text>
-            <Text className="text-[10px] text-slate-400 font-medium">
-              {headerSubtitle}
-            </Text>
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <View style={{ flex: 1, paddingBottom: keyboardHeight }}>
+        {/* 1. DYNAMIC HEADER */}
+        <View className="flex-row items-center justify-between border-b border-slate-100 px-6 py-4">
+          <View className="flex-row items-center space-x-3">
+            <TouchableOpacity onPress={() => router.back()} className="py-2">
+              <Text className="text-teal-700 text-base font-extrabold mr-1">⇠</Text>
+            </TouchableOpacity>
+            <View>
+              <Text className="text-lg font-extrabold text-slate-900">{headerTitle}</Text>
+              <Text className="text-[10px] text-slate-400 font-medium">
+                {headerSubtitle}
+              </Text>
+            </View>
           </View>
+          {messages.length > 0 && (
+            <TouchableOpacity onPress={handleClear} className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg active:bg-slate-100">
+              <Text className="text-slate-500 font-bold text-[10px] uppercase">Clear</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {messages.length > 0 && (
-          <TouchableOpacity onPress={handleClear} className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg active:bg-slate-100">
-            <Text className="text-slate-500 font-bold text-[10px] uppercase">Clear</Text>
-          </TouchableOpacity>
-        )}
-      </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
-      >
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 16 }}
@@ -409,7 +445,7 @@ export default function HealthAssistantScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

@@ -11,7 +11,7 @@ User = get_user_model()
 class HealthProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthProfile
-        fields = ['blood_group', 'allergies', 'medical_conditions']
+        fields = ['blood_group', 'allergies', 'medical_conditions', 'ai_personalization']
 
 class EmergencyProfileSerializer(serializers.ModelSerializer):
     class Meta:

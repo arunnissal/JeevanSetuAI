@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTimelineEvents } from '../../api/timeline';
 import { colors } from '../../theme/colors';
+import { Ionicons } from '@expo/vector-icons';
 
 interface TimelineEvent {
   id: string;
@@ -66,23 +67,26 @@ export default function TimelineScreen() {
     switch (type) {
       case 'UPLOAD':
         return {
-          icon: '🩸',
+          icon: 'document-text-outline',
+          iconColor: '#0f766e',
           title: 'Medical Report Added',
           description: 'Your report has been securely added to your Medical Vault.',
-          actionText: 'Open Report Details',
+          actionText: 'Open Details',
           route: (recordId?: string) => `/${recordId}`
         };
       case 'AI':
         return {
-          icon: '🧠',
+          icon: 'sparkles-outline',
+          iconColor: '#8b5cf6',
           title: 'Easy Explanation Ready',
           description: 'Your report has been analyzed and translated into easy-to-understand language.',
-          actionText: 'Open Report Details',
+          actionText: 'Open Details',
           route: (recordId?: string) => `/${recordId}`
         };
       case 'PROFILE':
         return {
-          icon: '👤',
+          icon: 'person-outline',
+          iconColor: '#3b82f6',
           title: 'Profile Updated',
           description: 'Your Digital Health Profile was updated.',
           actionText: 'Open Profile',
@@ -90,10 +94,11 @@ export default function TimelineScreen() {
         };
       case 'SOS':
         return {
-          icon: '🚨',
+          icon: 'alert-circle-outline',
+          iconColor: '#ef4444',
           title: 'Emergency Profile Updated',
-          description: 'Emergency information has been updated successfully.',
-          actionText: 'Open Emergency Profile',
+          description: 'Emergency contact information has been updated successfully.',
+          actionText: 'Open Profile',
           route: () => '/(tabs)/profile'
         };
     }
@@ -206,7 +211,7 @@ export default function TimelineScreen() {
       );
     }
 
-    const { item, isLastInGroup, nextItem } = listItem;
+    const { item, isLastInGroup } = listItem;
     const config = getEventConfig(item.event_type);
     if (!config) return null;
 
@@ -214,7 +219,6 @@ export default function TimelineScreen() {
     const relativeTime = getRelativeTime(item.created_at);
 
     // Premium Touch: If current is AI event and next in array is UPLOAD event for same record, color the line green
-    // Remember, FlatList contains headers, so let's find the next raw timeline event in the flat data
     let isRelatedConsecutive = false;
     let scanIdx = index + 1;
     while (scanIdx < flatListData.length) {
@@ -233,14 +237,16 @@ export default function TimelineScreen() {
       <View className="flex-row">
         {/* Left Vertical Connector Line */}
         <View className="items-center mr-4">
-          <View className="w-10 h-10 rounded-full bg-white border border-slate-200 items-center justify-center shadow-sm z-10">
-            <Text className="text-lg">{config.icon}</Text>
+          <View className="w-10 h-10 rounded-full bg-white border border-slate-200 items-center justify-center z-10">
+            <Ionicons name={config.icon as any} size={18} color={config.iconColor} />
           </View>
           {!isLastInGroup && (
             <View
-              className={`w-[2px] flex-1 my-1 ${
-                isRelatedConsecutive ? 'bg-teal-500 w-[3px]' : 'bg-slate-200'
-              }`}
+              className={
+                isRelatedConsecutive
+                  ? 'w-[3px] flex-1 my-1 bg-teal-500'
+                  : 'w-[2px] flex-1 my-1 bg-slate-200'
+              }
             />
           )}
         </View>
@@ -250,7 +256,7 @@ export default function TimelineScreen() {
           <TouchableOpacity
             onPress={() => setExpandedId(isExpanded ? null : item.id)}
             activeOpacity={0.9}
-            className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm"
+            className="bg-white border border-slate-200 p-5 rounded-2xl"
           >
             <View className="flex-row justify-between items-start mb-1">
               <Text className="text-slate-800 font-extrabold text-sm flex-1 mr-2">
@@ -307,34 +313,28 @@ export default function TimelineScreen() {
       {loading ? (
         // Timeline skeleton placeholders
         <ScrollView showsVerticalScrollIndicator={false} className="space-y-4">
-          <View className="h-12 bg-slate-200 rounded-xl mb-4 animate-pulse" />
-          <View className="h-10 bg-slate-200 rounded-xl mb-6 animate-pulse" />
+          <View className="h-12 bg-slate-200 rounded-xl mb-4" />
+          <View className="h-10 bg-slate-200 rounded-xl mb-6" />
           <View className="flex-row items-stretch">
             <View className="items-center mr-4">
-              <View className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
+              <View className="w-10 h-10 rounded-full bg-slate-200" />
               <View className="w-[2px] bg-slate-200 flex-1 my-1" />
             </View>
-            <View className="flex-1 bg-white border border-slate-200 p-5 rounded-2xl mb-4 shadow-sm">
-              <View className="h-4 w-28 bg-slate-200 rounded-md animate-pulse" />
-              <View className="h-3 w-full bg-slate-100 rounded-md mt-4 animate-pulse" />
-            </View>
+            <View className="flex-1 bg-white border border-slate-200 p-5 rounded-2xl mb-4 h-24" />
           </View>
           <View className="flex-row items-stretch">
             <View className="items-center mr-4">
-              <View className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
+              <View className="w-10 h-10 rounded-full bg-slate-200" />
               <View className="w-[2px] bg-slate-200 flex-1 my-1" />
             </View>
-            <View className="flex-1 bg-white border border-slate-200 p-5 rounded-2xl mb-4 shadow-sm">
-              <View className="h-4 w-28 bg-slate-200 rounded-md animate-pulse" />
-              <View className="h-3 w-full bg-slate-100 rounded-md mt-4 animate-pulse" />
-            </View>
+            <View className="flex-1 bg-white border border-slate-200 p-5 rounded-2xl mb-4 h-24" />
           </View>
         </ScrollView>
       ) : error ? (
         <View className="flex-1 justify-center items-center px-6">
-          <Text className="text-3xl mb-2">⚠️</Text>
-          <Text className="text-slate-800 font-bold text-lg">We couldn't load your health journey.</Text>
-          <Text className="text-slate-500 text-center mt-2 mb-6">{error}</Text>
+          <Ionicons name="warning-outline" size={40} color={colors.textMuted} />
+          <Text className="text-slate-800 font-bold text-lg mt-4">We couldn't load your health journey.</Text>
+          <Text className="text-slate-500 text-center mt-2 mb-6 text-xs">{error}</Text>
           <TouchableOpacity
             onPress={() => fetchEvents(true)}
             className="bg-teal-700 px-8 py-3.5 rounded-xl active:bg-teal-800"
@@ -345,9 +345,9 @@ export default function TimelineScreen() {
       ) : events.length === 0 ? (
         // Empty State: Premium Onboarding Card
         <View className="flex-1 justify-center items-center px-6">
-          <View className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm items-center w-full">
-            <Text className="text-4xl mb-4">🚀</Text>
-            <Text className="text-slate-800 font-extrabold text-lg text-center mb-2">
+          <View className="bg-white border border-slate-200 p-6 rounded-2xl items-center w-full">
+            <Ionicons name="rocket-outline" size={40} color="#0f766e" />
+            <Text className="text-slate-800 font-extrabold text-lg text-center mt-4 mb-2">
               Your Health Journey Starts Here
             </Text>
             <Text className="text-slate-500 text-center text-sm leading-relaxed mb-6 px-4">
@@ -364,18 +364,18 @@ export default function TimelineScreen() {
       ) : (
         <View className="flex-1">
           {/* Instant Local Search */}
-          <View className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex-row items-center mb-4 shadow-sm">
-            <Text className="mr-2 text-slate-400">🔍</Text>
+          <View className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex-row items-center mb-4">
+            <Ionicons name="search-outline" size={16} color="#94a3b8" />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search timeline..."
               placeholderTextColor="#94A3B8"
-              className="flex-1 text-slate-800 font-medium text-sm p-0"
+              className="flex-1 text-slate-800 font-medium text-sm p-0 ml-2"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Text className="text-slate-400 font-bold text-sm">✕</Text>
+                <Ionicons name="close-circle" size={16} color="#94a3b8" />
               </TouchableOpacity>
             )}
           </View>
@@ -393,16 +393,18 @@ export default function TimelineScreen() {
                   <TouchableOpacity
                     key={chip.id}
                     onPress={() => setSelectedFilter(chip.id)}
-                    className={`px-4 py-2 rounded-xl mr-2 border ${
+                    className={
                       isSelected
-                        ? 'bg-teal-700 border-teal-700 shadow-sm'
-                        : 'bg-white border-slate-200 active:bg-slate-50'
-                    }`}
+                        ? 'px-4 py-2 rounded-xl mr-2 border bg-teal-700 border-teal-700'
+                        : 'px-4 py-2 rounded-xl mr-2 border bg-white border-slate-200 active:bg-slate-50'
+                    }
                   >
                     <Text
-                      className={`text-xs font-bold ${
-                        isSelected ? 'text-white' : 'text-slate-600'
-                      }`}
+                      className={
+                        isSelected
+                          ? 'text-xs font-bold text-white'
+                          : 'text-xs font-bold text-slate-600'
+                      }
                     >
                       {chip.label}
                     </Text>
@@ -415,7 +417,7 @@ export default function TimelineScreen() {
           {/* Grouped list */}
           <FlatList
             data={flatListData}
-            keyExtractor={(item, index) => (item.isHeader ? `header-${index}` : item.item.id)}
+            keyExtractor={(item, index) => (item.isHeader ? 'header-' + index : item.item.id)}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
             refreshControl={

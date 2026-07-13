@@ -48,6 +48,7 @@ class HealthProfile(models.Model):
     blood_group = models.CharField(max_length=5, blank=True, null=True)
     allergies = models.TextField(blank=True, null=True) # comma-separated or text description
     medical_conditions = models.TextField(blank=True, null=True)
+    ai_personalization = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.email}'s Health Profile"

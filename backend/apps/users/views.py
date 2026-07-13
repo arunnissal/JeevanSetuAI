@@ -91,6 +91,8 @@ class ProfileView(APIView):
             health_profile.allergies = health_data['allergies']
         if 'medical_conditions' in health_data:
             health_profile.medical_conditions = health_data['medical_conditions']
+        if 'ai_personalization' in health_data:
+            health_profile.ai_personalization = health_data['ai_personalization']
         health_profile.save()
 
         # Update Emergency Profile

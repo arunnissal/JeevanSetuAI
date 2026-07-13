@@ -361,11 +361,43 @@ class HealthAssistantChatView(APIView):
         db_history = ChatMessage.objects.filter(user=user).order_by('-created_at')[:8]
         db_history = reversed(db_history)
 
+        # 5.5 Fetch user profile context
+        try:
+            hp = user.health_profile
+            blood_group = hp.blood_group or "Not provided"
+            allergies = hp.allergies or "Not provided"
+            medical_conditions = hp.medical_conditions or "Not provided"
+            ai_personalization = hp.ai_personalization or "None"
+        except Exception:
+            blood_group = "Not provided"
+            allergies = "Not provided"
+            medical_conditions = "Not provided"
+            ai_personalization = "None"
+
+        import datetime
+        age_str = "Not provided"
+        if user.dob:
+            today = datetime.date.today()
+            age = today.year - user.dob.year - ((today.month, today.day) < (user.dob.month, user.dob.day))
+            age_str = f"{age} years old (DOB: {user.dob.strftime('%Y-%m-%d')})"
+
+        user_profile_context = (
+            f"[USER PROFILE]:\n"
+            f"- Name: {user.full_name or 'Not provided'}\n"
+            f"- Age: {age_str}\n"
+            f"- Preferred Language: {user.language or 'en'}\n"
+            f"- Blood Group: {blood_group}\n"
+            f"- Allergies: {allergies}\n"
+            f"- Medical Conditions: {medical_conditions}\n"
+            f"- Custom AI Personalization Preferences: {ai_personalization}\n"
+        )
+
         # 6. Compose system instruction prompt
         system_prompt = (
             "You are JeevanSetu AI's Personal AI Health Assistant. "
             "Your objective is to help the user understand their own medical reports and health journey in simple, layman, friendly language.\n\n"
             "Here is the user's medical background context:\n"
+            f"{user_profile_context}\n"
             f"[RECENT SUMMARIES]:\n{summaries_context}\n\n"
             f"[TIMELINE EVENTS]:\n{timeline_context}\n"
             f"{prioritized_context}\n"

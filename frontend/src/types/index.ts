@@ -4,6 +4,17 @@ export interface User {
   fullName: string;
   dob?: string;
   profileProgress: number; // setup completion (0-100)
+  language?: string;
+  health_profile?: {
+    blood_group?: string;
+    allergies?: string;
+    medical_conditions?: string;
+    ai_personalization?: string;
+  };
+  emergency_profile?: {
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+  };
 }
 
 export interface HealthProfile {
